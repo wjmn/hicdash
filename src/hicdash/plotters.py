@@ -905,7 +905,7 @@ def plot_coverage_track(sample: ArimaPipelineSample, chr: str, start: int, end: 
 # USEFUL COMPOSITE PLOTS
 # -------------------------------------------------------------------------------
 
-def plot_composite_double_whole_matrix(sample: ArimaPipelineSample, figsize=(16,8), title_fontsize=14, **kwargs) -> plt.Figure:
+def plot_composite_double_whole_matrix(sample: ArimaPipelineSample, figsize=(13.5,7), title_fontsize=14, **kwargs) -> plt.Figure:
     """Plot sample whole matrix, unannotated next to annotated with translocations"""
     fig, ax = plt.subplots(1, 2, figsize=figsize)
     plot_full_matrix(sample, ax=ax[0], **kwargs)
@@ -914,7 +914,7 @@ def plot_composite_double_whole_matrix(sample: ArimaPipelineSample, figsize=(16,
     plt.tight_layout()
     return fig
 
-def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: BreakfinderCall, figsize=(15,8),zoom_resolution=10000, zoom_radius=400000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=8) -> plt.Figure:
+def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: BreakfinderCall, figsize=(13.5,7.3),zoom_resolution=10000, zoom_radius=400000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=7) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
 
     # Get figure and separate out axes
@@ -968,7 +968,7 @@ def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: Breakfind
 
     return fig
 
-def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipelineSample, call: BreakfinderCall, figsize=(15,8), resolution=50000, radius=3000000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=8) -> plt.Figure:
+def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipelineSample, call: BreakfinderCall, figsize=(13.5,7.3), resolution=50000, radius=3000000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=7) -> plt.Figure:
     "Plot two Hi-C plots side by side (e.g. sample vs control) at a given breakfinder call."
 
     # Get figure and separate out axes
@@ -1001,7 +1001,7 @@ def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipel
     assert ymax1 == ymax2
 
     # Plot gene tracks
-    max_rows=7
+    max_rows=6
     plot_gene_track(chrA, xmin1, xmax1, ax=ax1_top, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
     plot_gene_track(chrB, ymin1, ymax1, ax=ax1_left, vertical=True, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
     plot_gene_track(chrA, xmin2, xmax2, ax=ax2_top, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
