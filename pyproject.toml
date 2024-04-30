@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hicdash"
+version = "0.0.1"
+dependencies = [
+  "matplotlib",
+  "numpy",
+  "hic-straw",
+  "pyensembl",
+]
+requires-python = ">= 3.10"
+authors = [
+  {name = "Jamin Wu", email = "jw8710@nyu.edu"},
+]
+description = "Generate a visual dashboard of structural variants from Hi-C data."
+readme = "README.md"
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
