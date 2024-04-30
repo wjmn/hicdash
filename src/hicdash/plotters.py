@@ -401,7 +401,7 @@ def plot_hic_chr_context(
     sample: ArimaPipelineSample,
     chrA: str,
     chrB: str,
-    resolution: int=2500000,
+    resolution: int = 2500000,
     show_breakfinder_calls=True,
     region_highlight: tuple[tuple[int, int], tuple[int, int]] | None = None,
     normalization="NONE",
@@ -545,8 +545,8 @@ def plot_hic_chr_context(
     if region_highlight is not None:
         # TODO: Make region highlight the same size as actual region
         # ((region_xmin, region_xmax), (region_ymin, region_ymax)) = region_highlight
-        # box_width = (region_xmax - region_xmin) / CHROM_SIZES[chrA] * bottom_left.shape[1] 
-        # box_height = (region_ymax - region_ymin) / CHROM_SIZES[chrB] * bottom_left.shape[0] 
+        # box_width = (region_xmax - region_xmin) / CHROM_SIZES[chrA] * bottom_left.shape[1]
+        # box_height = (region_ymax - region_ymin) / CHROM_SIZES[chrB] * bottom_left.shape[0]
 
         box_width = 0.01 * full_matrix.shape[0] * 2
         box_height = 0.01 * full_matrix.shape[1] * 2
@@ -566,14 +566,14 @@ def plot_hic_chr_context(
         )
         box_left = posA / CHROM_SIZES[chrA] * top_left.shape[1] - 0.5
         ax.add_patch(
-                Ellipse(
-                    (box_left, box_top),
-                    box_width,
-                    box_height,
-                    fill=False,
-                    edgecolor="blue",
-                    linewidth=1,
-                )
+            Ellipse(
+                (box_left, box_top),
+                box_width,
+                box_height,
+                fill=False,
+                edgecolor="blue",
+                linewidth=1,
+            )
         )
 
     # If chrA == chrB, then show only the bottom left box (the four boxes will essentially just be all the same box, so you can just halve the axis limits)
@@ -705,13 +705,20 @@ def plot_gene_track(
     # Get genes in gene regions (only protein-coding genes or IG genes)
     # If there's a gene filter, check through all genes
     # If not, then choose only protein-coding genes (if specified as True)
-    candidates = GENE_ANNOTATIONS.genes_at_locus( contig=chr_unprefix(chr), position=start, end=end)
+    candidates = GENE_ANNOTATIONS.genes_at_locus(
+        contig=chr_unprefix(chr), position=start, end=end
+    )
     if gene_filter:
         gene_filter = set([gene.upper() for gene in gene_filter])
         genes = list(filter(lambda g: g.gene_name in gene_filter, candidates))
     else:
         if protein_coding_only:
-            genes = list(filter(lambda g: g.biotype == "protein_coding" and g.gene_name != "", candidates))
+            genes = list(
+                filter(
+                    lambda g: g.biotype == "protein_coding" and g.gene_name != "",
+                    candidates,
+                )
+            )
         else:
             genes = list(filter(lambda g: g.gene_name != "", candidates))
 
@@ -732,8 +739,8 @@ def plot_gene_track(
         ax.set_ylim(start, end)
     else:
         ax.set_xlim(start, end)
-    
-    # Invert y axis regardless of orientation 
+
+    # Invert y axis regardless of orientation
     ax.invert_yaxis()
 
     if hide_axes:
@@ -856,19 +863,35 @@ def plot_gene_track(
     return ax
 
 
-def plot_coverage_track(sample: ArimaPipelineSample, chr: str, start: int, end: int, resolution: int, max_coverage=5, ax=None, hide_axes=True, vertical=False, fontsize=8, bar_color="#61B8D1", label="Coverage", label_fontsize=8) -> plt.Axes:
+def plot_coverage_track(
+    sample: ArimaPipelineSample,
+    chr: str,
+    start: int,
+    end: int,
+    resolution: int,
+    max_coverage=5,
+    ax=None,
+    hide_axes=True,
+    vertical=False,
+    fontsize=8,
+    bar_color="#61B8D1",
+    label="Coverage",
+    label_fontsize=8,
+) -> plt.Axes:
     """Plot a coverage track for a given chromosome region.
-    
-    For best results, start and end should be multiples of the resolution. 
+
+    For best results, start and end should be multiples of the resolution.
 
     """
 
-    # Get 
+    # Get
     if ax is None:
         ax = plt.gca()
 
     # Get the coverage (VC) normalization vector
-    soom_data = sample.hic.getMatrixZoomData(chr_unprefix(chr), chr_unprefix(chr), "observed", "VC", "BP", resolution)
+    soom_data = sample.hic.getMatrixZoomData(
+        chr_unprefix(chr), chr_unprefix(chr), "observed", "VC", "BP", resolution
+    )
     # Position of norm vector is CHROM_INDEX + 1 (as the first stored chrom is the "ALL" chromosome)
     norm_position = CHROM_INDICES[chr] + 1
     norm_vector = soom_data.getNormVector(norm_position)
@@ -897,15 +920,36 @@ def plot_coverage_track(sample: ArimaPipelineSample, chr: str, start: int, end: 
 
     # Add label
     if vertical:
-        ax.text(0, 1, label, ha="left", va="top", transform=ax.transAxes, fontdict={"fontsize": label_fontsize}, rotation=90)
+        ax.text(
+            0,
+            1,
+            label,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"fontsize": label_fontsize},
+            rotation=90,
+        )
     else:
-        ax.text(0, 1, label, ha="left", va="top", transform=ax.transAxes, fontdict={"fontsize": label_fontsize})
+        ax.text(
+            0,
+            1,
+            label,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"fontsize": label_fontsize},
+        )
+
 
 # -------------------------------------------------------------------------------
 # USEFUL COMPOSITE PLOTS
 # -------------------------------------------------------------------------------
 
-def plot_composite_double_whole_matrix(sample: ArimaPipelineSample, figsize=(13.5,7), title_fontsize=14, **kwargs) -> plt.Figure:
+
+def plot_composite_double_whole_matrix(
+    sample: ArimaPipelineSample, figsize=(13.5, 7), title_fontsize=14, **kwargs
+) -> plt.Figure:
     """Plot sample whole matrix, unannotated next to annotated with translocations"""
     fig, ax = plt.subplots(1, 2, figsize=figsize)
     plot_full_matrix(sample, ax=ax[0], **kwargs)
@@ -914,12 +958,30 @@ def plot_composite_double_whole_matrix(sample: ArimaPipelineSample, figsize=(13.
     plt.tight_layout()
     return fig
 
-def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: BreakfinderCall, figsize=(13.5,7.3),zoom_resolution=10000, zoom_radius=400000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=7) -> plt.Figure:
+
+def plot_composite_context_and_zoom(
+    sample: ArimaPipelineSample,
+    call: BreakfinderCall,
+    figsize=(13.5, 7.3),
+    zoom_resolution=10000,
+    zoom_radius=400000,
+    gene_filter=None,
+    title=None,
+    title_fontsize=8,
+    title_ha="left",
+    gene_fontsize=7,
+) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
 
     # Get figure and separate out axes
     fig = plt.figure(figsize=figsize, constrained_layout=True)
-    spec = GridSpec(ncols=4, nrows=3, figure=fig, height_ratios=[0.5, 1, 8], width_ratios=[10, 0.5, 1, 8])
+    spec = GridSpec(
+        ncols=4,
+        nrows=3,
+        figure=fig,
+        height_ratios=[0.5, 1, 8],
+        width_ratios=[10, 0.5, 1, 8],
+    )
     ax_large = fig.add_subplot(spec[:, 0])
     ax_toptop = fig.add_subplot(spec[0, 3])
     ax_top = fig.add_subplot(spec[1, 3])
@@ -927,12 +989,21 @@ def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: Breakfind
     ax_left = fig.add_subplot(spec[2, 2])
     ax_center = fig.add_subplot(spec[2, 3])
 
-    # Unpack breakfinder call 
+    # Unpack breakfinder call
     chrA, posA = call.breakpointA.chr, call.breakpointA.pos
     chrB, posB = call.breakpointB.chr, call.breakpointB.pos
 
     # Plot zoomed hic matrix first to get axis bounds
-    _, (xmin, xmax), (ymin, ymax) = plot_hic_centered_matrix(sample, chrA, posA, chrB, posB, resolution=zoom_resolution, radius=zoom_radius, ax=ax_center)
+    _, (xmin, xmax), (ymin, ymax) = plot_hic_centered_matrix(
+        sample,
+        chrA,
+        posA,
+        chrB,
+        posB,
+        resolution=zoom_resolution,
+        radius=zoom_radius,
+        ax=ax_center,
+    )
 
     # Choose a chromosome context resolution
     if chrA == chrB:
@@ -947,16 +1018,36 @@ def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: Breakfind
             context_resolution = 1000000
 
     # Plot chromosome context
-    
-    _ = plot_hic_chr_context(sample, chrA, chrB, context_resolution, show_breakfinder_calls=True, region_highlight=((xmin, xmax), (ymin, ymax)), ax=ax_large)
+
+    _ = plot_hic_chr_context(
+        sample,
+        chrA,
+        chrB,
+        context_resolution,
+        show_breakfinder_calls=True,
+        region_highlight=((xmin, xmax), (ymin, ymax)),
+        ax=ax_large,
+    )
 
     # Plot coverage tracks
     plot_coverage_track(sample, chrA, xmin, xmax, zoom_resolution, ax=ax_toptop)
-    plot_coverage_track(sample, chrB, ymin, ymax, zoom_resolution, vertical=True, ax=ax_leftleft)
+    plot_coverage_track(
+        sample, chrB, ymin, ymax, zoom_resolution, vertical=True, ax=ax_leftleft
+    )
 
     # Plot gene tracks
-    plot_gene_track(chrA, xmin, xmax, ax=ax_top, fontsize=gene_fontsize, gene_filter=gene_filter)
-    plot_gene_track(chrB, ymin, ymax, ax=ax_left, vertical=True, fontsize=gene_fontsize, gene_filter=gene_filter)
+    plot_gene_track(
+        chrA, xmin, xmax, ax=ax_top, fontsize=gene_fontsize, gene_filter=gene_filter
+    )
+    plot_gene_track(
+        chrB,
+        ymin,
+        ymax,
+        ax=ax_left,
+        vertical=True,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+    )
 
     # If no specified title, then make metadata title
     if title is None:
@@ -968,12 +1059,35 @@ def plot_composite_context_and_zoom(sample: ArimaPipelineSample, call: Breakfind
 
     return fig
 
-def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipelineSample, call: BreakfinderCall, figsize=(13.5,7.3), resolution=50000, radius=3000000, gene_filter=None, title=None, title_fontsize=8, title_ha="left", gene_fontsize=7) -> plt.Figure:
+
+def plot_composite_compare_two(
+    sample1: ArimaPipelineSample,
+    sample2: ArimaPipelineSample,
+    call: BreakfinderCall,
+    figsize=(13.5, 7.3),
+    resolution=50000,
+    radius=3000000,
+    gene_filter=None,
+    title=None,
+    title_fontsize=8,
+    title_ha="left",
+    gene_fontsize=7,
+) -> plt.Figure:
     "Plot two Hi-C plots side by side (e.g. sample vs control) at a given breakfinder call."
 
     # Get figure and separate out axes
     fig = plt.figure(figsize=figsize, constrained_layout=True)
-    spec = GridSpec(ncols=7, nrows=3, figure=fig, height_ratios=[0.5, 1, 8,], width_ratios=[0.5, 1, 8, 1, 0.5, 1, 8])
+    spec = GridSpec(
+        ncols=7,
+        nrows=3,
+        figure=fig,
+        height_ratios=[
+            0.5,
+            1,
+            8,
+        ],
+        width_ratios=[0.5, 1, 8, 1, 0.5, 1, 8],
+    )
     ax1_leftleft = fig.add_subplot(spec[2, 0])
     ax1_left = fig.add_subplot(spec[2, 1])
     ax1_toptop = fig.add_subplot(spec[0, 2])
@@ -991,8 +1105,26 @@ def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipel
     chrB, posB = call.breakpointB.chr, call.breakpointB.pos
 
     # Plot zoomed hic matrices in each center plot
-    _, (xmin1, xmax1), (ymin1, ymax1) = plot_hic_centered_matrix(sample1, chrA, posA, chrB, posB, resolution=resolution, radius=radius, ax=ax1_center)
-    _, (xmin2, xmax2), (ymin2, ymax2) = plot_hic_centered_matrix(sample2, chrA, posA, chrB, posB, resolution=resolution, radius=radius, ax=ax2_center)
+    _, (xmin1, xmax1), (ymin1, ymax1) = plot_hic_centered_matrix(
+        sample1,
+        chrA,
+        posA,
+        chrB,
+        posB,
+        resolution=resolution,
+        radius=radius,
+        ax=ax1_center,
+    )
+    _, (xmin2, xmax2), (ymin2, ymax2) = plot_hic_centered_matrix(
+        sample2,
+        chrA,
+        posA,
+        chrB,
+        posB,
+        resolution=resolution,
+        radius=radius,
+        ax=ax2_center,
+    )
 
     # Assert axis limits are the same
     assert xmin1 == xmin2
@@ -1001,17 +1133,55 @@ def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipel
     assert ymax1 == ymax2
 
     # Plot gene tracks
-    max_rows=6
-    plot_gene_track(chrA, xmin1, xmax1, ax=ax1_top, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
-    plot_gene_track(chrB, ymin1, ymax1, ax=ax1_left, vertical=True, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
-    plot_gene_track(chrA, xmin2, xmax2, ax=ax2_top, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
-    plot_gene_track(chrB, ymin2, ymax2, ax=ax2_left, vertical=True, fontsize=gene_fontsize, gene_filter=gene_filter, max_rows=max_rows)
+    max_rows = 6
+    plot_gene_track(
+        chrA,
+        xmin1,
+        xmax1,
+        ax=ax1_top,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+        max_rows=max_rows,
+    )
+    plot_gene_track(
+        chrB,
+        ymin1,
+        ymax1,
+        ax=ax1_left,
+        vertical=True,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+        max_rows=max_rows,
+    )
+    plot_gene_track(
+        chrA,
+        xmin2,
+        xmax2,
+        ax=ax2_top,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+        max_rows=max_rows,
+    )
+    plot_gene_track(
+        chrB,
+        ymin2,
+        ymax2,
+        ax=ax2_left,
+        vertical=True,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+        max_rows=max_rows,
+    )
 
     # Plot coverage tracks
     plot_coverage_track(sample1, chrA, xmin1, xmax1, resolution, ax=ax1_toptop)
-    plot_coverage_track(sample1, chrB, ymin1, ymax1, resolution, vertical=True, ax=ax1_leftleft)
+    plot_coverage_track(
+        sample1, chrB, ymin1, ymax1, resolution, vertical=True, ax=ax1_leftleft
+    )
     plot_coverage_track(sample2, chrA, xmin2, xmax2, resolution, ax=ax2_toptop)
-    plot_coverage_track(sample2, chrB, ymin2, ymax2, resolution, vertical=True, ax=ax2_leftleft)
+    plot_coverage_track(
+        sample2, chrB, ymin2, ymax2, resolution, vertical=True, ax=ax2_leftleft
+    )
 
     # Add divider
     divider.text(0.5, 0.5, "vs", ha="center", va="center", fontsize=20)
@@ -1036,12 +1206,12 @@ def plot_composite_compare_two(sample1: ArimaPipelineSample, sample2: ArimaPipel
     return fig
 
 
-
 # -------------------------------------------------------------------------------
 # QC Plot
 # -------------------------------------------------------------------------------
 
-def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
+
+def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
 
     fig = plt.figure(figsize=figsize)
     qc = sample.qc
@@ -1051,7 +1221,7 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
     raw_pairs = int(qc.raw_pairs) / 1e6
     mapped_se = int(qc.mapped_se_reads) / 1e6
     mapped_se_pct = int(qc.mapped_se_reads_pct)
-    plt.barh(2, raw_pairs*2, color="deepskyblue")
+    plt.barh(2, raw_pairs * 2, color="deepskyblue")
     plt.barh(1, mapped_se, color="lightskyblue")
     plt.yticks([])
     plt.xlim([0, 1200])
@@ -1059,19 +1229,30 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
     plt.xlabel("Count (x10^6)")
 
     patches = plt.gca().patches
-    labels = [f"{raw_pairs:.0f} million pairs = {raw_pairs*2:.0f} million total SE reads ", f"{mapped_se:.0f} million mapped SE reads ({mapped_se_pct}%)"]
+    labels = [
+        f"{raw_pairs:.0f} million pairs = {raw_pairs*2:.0f} million total SE reads ",
+        f"{mapped_se:.0f} million mapped SE reads ({mapped_se_pct}%)",
+    ]
     for patch, label in zip(patches, labels):
-        plt.text(10, patch.get_y() + patch.get_height()/2, label, color="black", ha="left", va="center", fontsize=9)
+        plt.text(
+            10,
+            patch.get_y() + patch.get_height() / 2,
+            label,
+            color="black",
+            ha="left",
+            va="center",
+            fontsize=9,
+        )
 
     # Plot of valid, duplicate and invalid reads (and invalid composition)
     plt.subplot(5, 1, 2)
-    left = 0 
+    left = 0
     unique_valid_pairs = qc.unique_valid_pairs_pct
     duplicates = qc.duplicated_pct
     invalid = qc.invalid_pct
     plt.barh(1, invalid, color="crimson", left=left)
-    plt.barh(1, duplicates, color="lightgray", left=left+invalid)
-    plt.barh(1, unique_valid_pairs, color="limegreen", left=left+invalid+duplicates)
+    plt.barh(1, duplicates, color="lightgray", left=left + invalid)
+    plt.barh(1, unique_valid_pairs, color="limegreen", left=left + invalid + duplicates)
 
     left = 0
     circular = qc.same_circular_pct
@@ -1081,12 +1262,32 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
     contiguous = qc.contiguous_pct
     wrong_size = qc.wrong_size_pct
     base_color = "crimson"
-    plt.barh(0, circular, color=base_color, left=left, alpha=6/6)
-    plt.barh(0, dangling, color=base_color, left=left+circular, alpha=5/6)
-    plt.barh(0, fragment, color=base_color, left=left+circular+dangling, alpha=4/6)
-    plt.barh(0, re_ligation, color=base_color, left=left+circular+dangling+fragment, alpha=3/6)
-    plt.barh(0, contiguous, color=base_color, left=left+circular+dangling+fragment+re_ligation, alpha=2/6)
-    plt.barh(0, wrong_size, color=base_color, left=left+circular+dangling+fragment+re_ligation+contiguous, alpha=1/6)
+    plt.barh(0, circular, color=base_color, left=left, alpha=6 / 6)
+    plt.barh(0, dangling, color=base_color, left=left + circular, alpha=5 / 6)
+    plt.barh(
+        0, fragment, color=base_color, left=left + circular + dangling, alpha=4 / 6
+    )
+    plt.barh(
+        0,
+        re_ligation,
+        color=base_color,
+        left=left + circular + dangling + fragment,
+        alpha=3 / 6,
+    )
+    plt.barh(
+        0,
+        contiguous,
+        color=base_color,
+        left=left + circular + dangling + fragment + re_ligation,
+        alpha=2 / 6,
+    )
+    plt.barh(
+        0,
+        wrong_size,
+        color=base_color,
+        left=left + circular + dangling + fragment + re_ligation + contiguous,
+        alpha=1 / 6,
+    )
 
     plt.yticks([])
     plt.xlim([0, 100])
@@ -1094,20 +1295,54 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
     plt.xlabel("% of pairs")
 
     patches = plt.gca().patches
-    labels = [f"{invalid}% invalid", f"{duplicates}% dups", f"{unique_valid_pairs}% valid", f"{circular}% circular", f"{dangling}% dangling", f"{fragment}% same fragment", f"{re_ligation}% re-ligation", f"{contiguous}% contiguous", f"{wrong_size}% wrong size"]
+    labels = [
+        f"{invalid}% invalid",
+        f"{duplicates}% dups",
+        f"{unique_valid_pairs}% valid",
+        f"{circular}% circular",
+        f"{dangling}% dangling",
+        f"{fragment}% same fragment",
+        f"{re_ligation}% re-ligation",
+        f"{contiguous}% contiguous",
+        f"{wrong_size}% wrong size",
+    ]
     for patch, label in zip(patches, labels):
         if patch.get_y() > 0:
             if patch.get_width() > 10:
-                plt.text(patch.get_x() + 0.5, patch.get_y() + patch.get_height()/2, label, color="black", ha="left", va="center", fontsize=9)
+                plt.text(
+                    patch.get_x() + 0.5,
+                    patch.get_y() + patch.get_height() / 2,
+                    label,
+                    color="black",
+                    ha="left",
+                    va="center",
+                    fontsize=9,
+                )
             elif patch.get_width() > 4:
-                plt.text(patch.get_x() + 0.5, patch.get_y() + patch.get_height()/2, label, color="black", ha="left", va="center", fontsize=6)
+                plt.text(
+                    patch.get_x() + 0.5,
+                    patch.get_y() + patch.get_height() / 2,
+                    label,
+                    color="black",
+                    ha="left",
+                    va="center",
+                    fontsize=6,
+                )
         else:
             if patch.get_width() > 5:
-                plt.text(patch.get_x() + 0.5, patch.get_y() + patch.get_height()/2, label, color="black", ha="left", va="center", fontsize=7)
+                plt.text(
+                    patch.get_x() + 0.5,
+                    patch.get_y() + patch.get_height() / 2,
+                    label,
+                    color="black",
+                    ha="left",
+                    va="center",
+                    fontsize=7,
+                )
             else:
                 pass
 
-    # Plot of library size 
+    # Plot of library size
     plt.subplot(5, 5, 11)
     mean_lib_length = int(qc.mean_lib_length)
     plt.barh(0, mean_lib_length, color="black")
@@ -1123,14 +1358,13 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12,8)) -> plt.Figure:
     plt.title(f"% truncated\n{truncated}%")
     plt.yticks([])
 
-
     # Plot of intra and inter
     plt.subplot(5, 5, 13)
-    left = 0 
+    left = 0
     intra = qc.intra_pairs_pct
     inter = qc.inter_pairs_pct
     plt.barh(1, intra, color="purple", left=left)
-    plt.barh(1, inter, color="plum", left=left+intra)
+    plt.barh(1, inter, color="plum", left=left + intra)
     plt.yticks([])
     plt.title(f"% intra/inter\n{intra}%/{inter}%")
     plt.xlim([0, 100])
