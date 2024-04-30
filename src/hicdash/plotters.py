@@ -699,7 +699,7 @@ def plot_gene_track(
     (otherwise the track will be too crowded to read).
     """
 
-    center = (start + end) / 2
+    center = (start + end) // 2
 
     # Requires unprefixed chromosome
     # Get genes in gene regions (only protein-coding genes or IG genes)
@@ -757,6 +757,10 @@ def plot_gene_track(
     pct_5 = 5 * (end - start) / 100
     max_arrowhead_width = (end - start) / 100
     plot_line_width = 0.4
+
+    # Get genes which intersect the center directly
+    direct_genes = GENE_ANNOTATIONS.genes_at_locus(contig=chr_unprefix(chr), position=center)
+    direct_genes_set = set([gene.gene_name for gene in direct_genes])
 
     for gene in genes:
 
@@ -816,6 +820,8 @@ def plot_gene_track(
                 )
 
         # Get text position - and avoid putting the text out of axes
+        # Bolden the text if passes directly through the center of the range (assuming a breakpoint is in the center)
+        fontweight = "bold" if gene.gene_name in direct_genes_set else "normal"
         if vertical:
             va = "top"
             text_position = gene.end + (pct_5 * 0.3)
@@ -832,6 +838,7 @@ def plot_gene_track(
                 fontsize=fontsize,
                 rotation=90,
                 color=color,
+                fontweight=fontweight,
             ).set_clip_on(True)
         else:
             ha = "right"
@@ -848,6 +855,7 @@ def plot_gene_track(
                 va="center",
                 fontsize=fontsize,
                 color=color,
+                fontweight=fontweight,
             ).set_clip_on(True)
 
         # Increment plot counter
