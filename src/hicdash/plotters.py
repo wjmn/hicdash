@@ -905,9 +905,16 @@ def plot_coverage_track(
     norm_vector = soom_data.getNormVector(norm_position)
 
     # Subset the norm vector for the given region
-    norm_start = start // resolution
+    norm_start = max(0, start // resolution)
     norm_end = (end + resolution) // resolution
     norm_vector = norm_vector[norm_start:norm_end]
+
+    # Ensure norm vector is correct size
+    if start < 0:
+        norm_vector = np.pad(norm_vector, (-start // resolution, 0), "constant")
+    if end > CHROM_SIZES[chr]:
+        norm_vector = np.pad(norm_vector, (0, (end - CHROM_SIZES[chr]) // resolution), "constant")
+
     positions = (np.arange(norm_vector.size) * resolution) + start
 
     if vertical:
