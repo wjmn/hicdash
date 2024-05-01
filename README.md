@@ -1,8 +1,10 @@
 # hicdash: Generate a Hi-C Structural Variant Dashboard
 
-[images/screenshot.png](hicdash screenshot)
+![hicdash screenshot](images/screenshot.png)
 
 This project provides a command to generate a self-contained HTML file containing plots of all identified structural variants from a Hi-C contact matrix for easy and fast review. 
+
+This tool only generates plots and a report; it does not perform any Hi-C analysis itself. 
 
 This is currently a work in-progress. This project is designed to work with the outputs from the [Arima-SV Pipeline (v1.3)](https://github.com/ArimaGenomics/Arima-SV-Pipeline).
 
@@ -42,10 +44,14 @@ python -m hicdash \
     --output report.html 
 ```
 
+(example data is not included with this repo, so make sure to replace the arguments above with paths to your data)
+
 This will save the Hi-C report into a file called `report.html`. It might take a while to run, depending on how many breakpoints there are. 
 
 Here are the command line arguments:
 
+| Argument | Required? | Description | 
+|----------|-----------|-------------|
 | `--prefix` | Required | The sample ID or prefix used when running the Arima-SV pipeline. |
 | `--hic` | Required | The path to the .hic file output from the Arima-SV pipeline. | 
 | `--output` | Required | The path to the file you wish to output the report to (include the .html extension) |
@@ -55,4 +61,4 @@ Here are the command line arguments:
 
 While the `--qc`, `--breaks` and `--control` arguments are optional, they are highly recommended. The report won't be very useful without these outputs. 
 
-This tool only generates plots and a report; it does not perform any Hi-C analysis itself. 
+
