@@ -1,10 +1,58 @@
 # hicdash: Generate a Hi-C Structural Variant Dashboard
 
+[images/screenshot.png](hicdash screenshot)
+
 This project provides a command to generate a self-contained HTML file containing plots of all identified structural variants from a Hi-C contact matrix for easy and fast review. 
 
 This is currently a work in-progress. This project is designed to work with the outputs from the [Arima-SV Pipeline (v1.3)](https://github.com/ArimaGenomics/Arima-SV-Pipeline).
 
-Dashboard sections:
-1. Quality-control metrics
-2. Full Hi-C contact matrix
-3. Zoomed plots of all structural variants (4-box view and close-up view). 
+## Installation
+
+At the moment, the easiest way is to `git clone` this repo, install the requirements and then install the `hicdash` module. Using a separate Python virtual environment or a new conda environment is strongly suggested (and ensure you have Python >= 3.10). 
+
+```bash
+# Clone repo and change directory
+git clone https://github.com/wjmn/hicdash
+cd hicdash
+
+# Install requirements
+pip install -r requirements.txt
+
+# Install hicdash from current directory
+pip install .
+```
+
+Once installed, you can check if it installed correctly by showing the help info:
+
+```bash
+python -m hicdash --help
+```
+
+## Usage
+
+Here's an example of running `hicdash`:
+
+```bash
+python -m hicdash \
+    --prefix EXAMPLE \
+    --qc /home/wjmn/repos/hicdash/example_data/EXAMPLE_v1.3_Arima_QC_deep.txt \
+    --hic /home/wjmn/repos/hicdash/example_data/EXAMPLE_inter_30.hic \
+    --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.breaks.bedpe \
+    --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
+    --output report.html 
+```
+
+This will save the Hi-C report into a file called `report.html`. It might take a while to run, depending on how many breakpoints there are. 
+
+Here are the command line arguments:
+
+| `--prefix` | Required | The sample ID or prefix used when running the Arima-SV pipeline. |
+| `--hic` | Required | The path to the .hic file output from the Arima-SV pipeline. | 
+| `--output` | Required | The path to the file you wish to output the report to (include the .html extension) |
+| `--breaks` | Optional | The path to the .breaks.bedpe file output from the Arima-SV pipeline containing hic_breakfinder calls. | 
+| `--qc` | Optional | The path to the deep quality control .txt file output from the Arima-SV pipeline. |
+| `--control` | Optional | The path to a control .hic file, which will be used for visual plot comparisons. |
+
+While the `--qc`, `--breaks` and `--control` arguments are optional, they are highly recommended. The report won't be very useful without these outputs. 
+
+This tool only generates plots and a report; it does not perform any Hi-C analysis itself. 

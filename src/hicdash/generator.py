@@ -34,7 +34,7 @@ def get_genes_at_call(call: BreakfinderCall) -> tuple[list[str], list[str]]:
     return ([g.gene_name for g in genesA], [g.gene_name for g in genesB])
 
 
-def get_genes_around_call(call: BreakfinderCall, width=25000, buffer=10000, protein_coding=True):
+def get_genes_around_call(call: BreakfinderCall, width=300000, buffer=10000, protein_coding=True):
     """Gets a list of genes around a breakpoint (based on strandness). 
 
     Looks in direction of strandness for WIDTH bp and in opposite direction of strandness for BUFFER bp.
@@ -228,18 +228,23 @@ def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=
     sample = read_sample(sample_id, hic_filepath, qc_filepath, breakfinder_filepath)
 
     print(f"Hi-C sample loaded: {sample.id}. Generating report (this may take a while)...")
-    print(f"There are {len(sample.breakfinder_calls)} breakfinder calls in this sample.")
+
+    if sample.breakfinder_calls is not None:
+        print(f"There are {len(sample.breakfinder_calls)} breakfinder calls in this sample.")
 
     if control_filepath is not None:
         control = read_sample("", control_filepath, None, None)
     else:
         control = None
 
-    # Generate call entries
-    html_calls = "\n".join([make_html_call(sample, call, control) for call in sample.breakfinder_calls])
-
-    # Generate sidebar call entries
-    html_sidebar_calls = "\n".join([make_html_sidebar_call(call) for call in sample.breakfinder_calls])
+    if sample.breakfinder_calls is not None:
+        # Generate call entries
+        html_calls = "\n".join([make_html_call(sample, call, control) for call in sample.breakfinder_calls])
+        # Generate sidebar call entries
+        html_sidebar_calls = "\n".join([make_html_sidebar_call(call) for call in sample.breakfinder_calls])
+    else:
+        html_calls = "No breakfinder calls were provided."
+        html_sidebar_calls = ""
 
     # Generate qc plot
     html_maybe_qc_plot = make_html_qc_plot(sample)
@@ -264,4 +269,18 @@ def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=
         html_breakfinder_calls=html_calls,
     )
 
+def make_html_report_and_save(sample_id: str, hic_filepath: str, qc_filepath: str | None=None, breakfinder_filepath: str | None=None, control_filepath: str | None=None, output_filepath: str | None=None) -> None:
+    """Generate a full report and save it to a file"""
 
+    if output_filepath is None:
+        output_filepath = f"{sample_id}_report.html"
+    
+    if not output_filepath.endswith(".html"):
+        output_filepath += ".html"
+
+    report_html = make_html_report(sample_id, hic_filepath, qc_filepath, breakfinder_filepath, control_filepath)
+
+    with open(output_filepath, "w") as f:
+        f.write(report_html)
+
+    print(f"Report saved to {output_filepath}.")
