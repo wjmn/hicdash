@@ -39,3 +39,4 @@ def suffixed_string_to_int(suffixed_str: str) -> int:
         return int(float(suffixed_str[:-2]) * 1e3)
     else:
         return int(float(suffixed_str))
+

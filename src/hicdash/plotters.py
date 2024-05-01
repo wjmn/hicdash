@@ -469,7 +469,6 @@ def plot_hic_chr_context(
     )
 
     # Stack the Hi-C data into one 4-box matrix
-    print(top_left.shape, top_right.shape, bottom_left.shape, bottom_right.shape)
     top_row = np.hstack([top_left, top_right])
     bottom_row = np.hstack([bottom_left, bottom_right])
     full_matrix = np.vstack([top_row, bottom_row])
@@ -689,7 +688,7 @@ def plot_gene_track(
     vertical=False,
     ax=None,
     fontsize=8,
-    max_rows=8,
+    max_rows=6,
     min_rows=3,
     protein_coding_only=True,
 ) -> plt.Axes:
@@ -821,7 +820,8 @@ def plot_gene_track(
 
         # Get text position - and avoid putting the text out of axes
         # Bolden the text if passes directly through the center of the range (assuming a breakpoint is in the center)
-        fontweight = "bold" if gene.gene_name in direct_genes_set else "normal"
+        # fontweight = "bold" if gene.gene_name in direct_genes_set else "normal"
+        fontweight = "normal"
         if vertical:
             va = "top"
             text_position = gene.end + (pct_5 * 0.3)
@@ -1086,27 +1086,22 @@ def plot_composite_compare_two(
     # Get figure and separate out axes
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     spec = GridSpec(
-        ncols=7,
-        nrows=3,
+        ncols=5,
+        nrows=2,
         figure=fig,
         height_ratios=[
             0.5,
-            1,
             8,
         ],
-        width_ratios=[0.5, 1, 8, 1, 0.5, 1, 8],
+        width_ratios=[0.5, 8, 1, 0.5, 8],
     )
-    ax1_leftleft = fig.add_subplot(spec[2, 0])
-    ax1_left = fig.add_subplot(spec[2, 1])
-    ax1_toptop = fig.add_subplot(spec[0, 2])
-    ax1_top = fig.add_subplot(spec[1, 2])
-    ax1_center = fig.add_subplot(spec[2, 2])
-    divider = fig.add_subplot(spec[2, 3])
-    ax2_leftleft = fig.add_subplot(spec[2, 4])
-    ax2_left = fig.add_subplot(spec[2, 5])
-    ax2_toptop = fig.add_subplot(spec[0, 6])
-    ax2_top = fig.add_subplot(spec[1, 6])
-    ax2_center = fig.add_subplot(spec[2, 6])
+    ax1_left = fig.add_subplot(spec[1, 0])
+    ax1_top = fig.add_subplot(spec[0, 1])
+    ax1_center = fig.add_subplot(spec[1, 1])
+    divider = fig.add_subplot(spec[1, 2])
+    ax2_left = fig.add_subplot(spec[1, 3])
+    ax2_top = fig.add_subplot(spec[0, 4])
+    ax2_center = fig.add_subplot(spec[1, 4])
 
     # Unpack breakfinder call
     chrA, posA = call.breakpointA.chr, call.breakpointA.pos
@@ -1140,55 +1135,14 @@ def plot_composite_compare_two(
     assert ymin1 == ymin2
     assert ymax1 == ymax2
 
-    # Plot gene tracks
-    max_rows = 6
-    plot_gene_track(
-        chrA,
-        xmin1,
-        xmax1,
-        ax=ax1_top,
-        fontsize=gene_fontsize,
-        gene_filter=gene_filter,
-        max_rows=max_rows,
-    )
-    plot_gene_track(
-        chrB,
-        ymin1,
-        ymax1,
-        ax=ax1_left,
-        vertical=True,
-        fontsize=gene_fontsize,
-        gene_filter=gene_filter,
-        max_rows=max_rows,
-    )
-    plot_gene_track(
-        chrA,
-        xmin2,
-        xmax2,
-        ax=ax2_top,
-        fontsize=gene_fontsize,
-        gene_filter=gene_filter,
-        max_rows=max_rows,
-    )
-    plot_gene_track(
-        chrB,
-        ymin2,
-        ymax2,
-        ax=ax2_left,
-        vertical=True,
-        fontsize=gene_fontsize,
-        gene_filter=gene_filter,
-        max_rows=max_rows,
-    )
-
     # Plot coverage tracks
-    plot_coverage_track(sample1, chrA, xmin1, xmax1, resolution, ax=ax1_toptop)
+    plot_coverage_track(sample1, chrA, xmin1, xmax1, resolution, ax=ax1_top)
     plot_coverage_track(
-        sample1, chrB, ymin1, ymax1, resolution, vertical=True, ax=ax1_leftleft
+        sample1, chrB, ymin1, ymax1, resolution, vertical=True, ax=ax1_left
     )
-    plot_coverage_track(sample2, chrA, xmin2, xmax2, resolution, ax=ax2_toptop)
+    plot_coverage_track(sample2, chrA, xmin2, xmax2, resolution, ax=ax2_top)
     plot_coverage_track(
-        sample2, chrB, ymin2, ymax2, resolution, vertical=True, ax=ax2_leftleft
+        sample2, chrB, ymin2, ymax2, resolution, vertical=True, ax=ax2_left
     )
 
     # Add divider
@@ -1197,8 +1151,8 @@ def plot_composite_compare_two(
     divider.xaxis.set_visible(False)
     divider.yaxis.set_visible(False)
 
-    ax1_toptop.set_title(sample1.id + "\n")
-    ax2_toptop.set_title(sample2.id + " [Control]", color="gray")
+    ax1_top.set_title(sample1.id + "\n")
+    ax2_top.set_title(sample2.id + " [Control]", color="gray")
 
     # Make axis 2 spines a different color
     ax2_center.spines[["top", "right", "left", "bottom"]].set_color("lightgray")

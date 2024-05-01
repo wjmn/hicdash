@@ -1,0 +1,25 @@
+<div class="breakfinder-call section-container" id="{call_region_string_no_spaces}" >
+    <h3 class="breakfinder-call-title" >{call_region_string}</h3>
+
+    <div class="prediction">
+        <p>Category based on chromosomes & strandness: {category}</p>
+        <p>Full breakfinder call submatrix: {submatrix_string}</p>
+        <p>Resolution of call: {call_resolution}</p>
+        <p>Negative logP value: {neg_log_p}</p>
+    </div>
+
+    <div class="two-columns nearby-genes">
+        <div class="column">
+            <p>Genes close to breakpoint A (<b>{chrA}</b>):</p>
+            <div class="gene-list">{html_genesA}</div>
+        </div>
+        <div class="column">
+            <p>Genes close to breakpoint B (<b>{chrB}</b>):</p>
+            <div class="gene-list">{html_genesB}</div>
+        </div>
+    </div>
+
+    <img class="figure" src="data:image/png;base64,{call_region_plot_base64}" />
+
+    {html_maybe_comparison}
+</div>
