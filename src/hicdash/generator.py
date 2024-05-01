@@ -34,7 +34,7 @@ def get_genes_at_call(call: BreakfinderCall) -> tuple[list[str], list[str]]:
     return ([g.gene_name for g in genesA], [g.gene_name for g in genesB])
 
 
-def get_genes_around_call(call: BreakfinderCall, width=300000, buffer=10000, protein_coding=True):
+def get_genes_around_call(call: BreakfinderCall, width=300000, buffer=25000, protein_coding=True):
     """Gets a list of genes around a breakpoint (based on strandness). 
 
     Looks in direction of strandness for WIDTH bp and in opposite direction of strandness for BUFFER bp.
