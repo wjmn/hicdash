@@ -6,7 +6,7 @@ This project provides a command to generate a self-contained HTML file containin
 
 This tool only generates plots and a report; it does not perform any Hi-C analysis itself. 
 
-This is currently a work in-progress. This project is designed to work with the outputs from the [Arima-SV Pipeline (v1.3)](https://github.com/ArimaGenomics/Arima-SV-Pipeline).
+This is currently a work in-progress. This project is designed to work with the outputs from the [Arima SV Pipeline (v1.3)](https://github.com/ArimaGenomics/Arima-SV-Pipeline).
 
 ## Installation
 
@@ -61,4 +61,9 @@ Here are the command line arguments:
 
 While the `--qc`, `--breaks` and `--control` arguments are optional, they are highly recommended. The report won't be very useful without these outputs. 
 
+## Acknowledgements
+
+The [Arima SV Pipeline](https://github.com/ArimaGenomics/Arima-SV-Pipeline) is developed by Arima Genomics. Support for the Arima SV Pipeline can be found on their GitHub page; thank you Arima for outstanding support with using the Arima SV Pipeline. 
+
+This is currently an internal research tool developed at Snuderl Lab, NYU. 
 
