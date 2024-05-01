@@ -473,9 +473,9 @@ def plot_hic_chr_context(
     bottom_row = np.hstack([bottom_left, bottom_right])
     full_matrix = np.vstack([top_row, bottom_row])
 
-    # Calculate max colormap value (default is third of the sqrt of max_value)
+    # Calculate max colormap value (default is a fraction of the sqrt of max_value)
     max_value = np.max(full_matrix)
-    vmax_large = np.sqrt(max_value) / 3
+    vmax_large = np.sqrt(max_value) / 1.5
 
     # Plot the large matrix
     ax.matshow(full_matrix, cmap=cmap, vmax=vmax_large)
@@ -614,9 +614,9 @@ def plot_full_matrix(
     if ax is None:
         ax = plt.gca()
 
-    # Apply colour scale (quarter of sqrt of max value for now)
+    # Apply colour scale (fraction of sqrt of max value for now)
     max_value = np.max(full_matrix)
-    vmax = np.sqrt(max_value) / 4
+    vmax = np.sqrt(max_value) / 1.5
 
     # Plot matrix
     ax.matshow(full_matrix, cmap=cmap, vmax=vmax)
