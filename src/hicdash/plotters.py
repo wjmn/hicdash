@@ -340,7 +340,7 @@ def plot_hic_region_matrix(
 
                 # Normalize the marker size depending on resolution
                 # TODO: Make this sizing a bit more consistent.
-                size = max(10, 40 * 100000 / ((endY - endX) // 2))
+                size = max(10, 40 * 100000 / ((endY - startY) // 2))
 
                 # Plot the marker on the plot
                 ax.plot(
