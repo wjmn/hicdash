@@ -10,7 +10,13 @@ This is currently a work in-progress. This project is designed to work with the 
 
 ## Installation
 
-At the moment, the easiest way is to `git clone` this repo, install the requirements and then install the `hicdash` module. Using a separate Python virtual environment or a new conda environment is strongly suggested (and ensure you have Python >= 3.10). 
+### Docker 
+
+Thank you to Jon Belton at Arima Genomics for providing a Docker image for easy installation and use, available at: [https://hub.docker.com/r/arimajon/hicdash_ubuntu24](https://hub.docker.com/r/arimajon/hicdash_ubuntu24). This image handles installing all the required dependencies for usage. 
+
+### Manual
+
+To manually install, `git clone` this repo, install the requirements and then install the `hicdash` module. Using a separate Python virtual environment or a new conda environment is strongly suggested (and ensure you have Python >= 3.10). 
 
 ```bash
 # Clone repo and change directory
@@ -29,6 +35,8 @@ Once installed, you can check if it installed correctly by showing the help info
 ```bash
 python -m hicdash --help
 ```
+
+You may also need to run `pyensembl install --release 110 --species homo_sapiens` prior to running hicdash in order to install the Ensembl gene annotations used to plot gene tracks. 
 
 ## Usage
 
