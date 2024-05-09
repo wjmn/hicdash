@@ -123,6 +123,8 @@ def get_hic_region_data(
             min(endX, CHROM_SIZES[chrX] + resolution)
             - (max(0, startX) // resolution * resolution)
         ) // resolution
+        boundedY = max(boundedY, 1)
+        boundedX = max(boundedX, 1)
         data = np.zeros((boundedY, boundedX))
 
     # If the data shape is not as expected, then the provided range is probably at a boundary.
