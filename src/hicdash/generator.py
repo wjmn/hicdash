@@ -260,6 +260,7 @@ def make_html_call(
     extra_bedpe_data: list[BedpeLine] = [],
     extra_bigwig_handles: list[tuple[str, object]] = [],
     crosshairs: bool = False,
+    grid: bool = False,
 ) -> str:
     """Generate HTML for a call entry in the report"""
 
@@ -307,7 +308,7 @@ def make_html_call(
 
     # Generate call_region plot
     calL_region_plot_fig = plot_composite_context_and_zoom(
-        sample, call, extra_bedpe=extra_bedpe_data, extra_bigwig_handles=extra_bigwig_handles, crosshairs=crosshairs
+        sample, call, extra_bedpe=extra_bedpe_data, extra_bigwig_handles=extra_bigwig_handles, crosshairs=crosshairs, grid=grid, plot_at_call_resolution=True
     )
     call_region_plot_base64 = fig_to_base64_and_close(calL_region_plot_fig)
 
@@ -340,6 +341,7 @@ def make_html_report(
     extra_bedpe: list[str] = [],
     extra_bigwig: list[str] = [],
     crosshairs: bool = False,
+    grid: bool=False,
 ) -> str:
     """Generate HTML for a full report"""
 
@@ -381,7 +383,7 @@ def make_html_report(
         # Generate call entries
         html_calls = "\n".join(
             [
-                make_html_call(sample, call, control, extra_bedpe_data, extra_bigwig_handles, crosshairs)
+                make_html_call(sample, call, control, extra_bedpe_data, extra_bigwig_handles, crosshairs, grid=grid)
                 for call in sample.breakfinder_calls
             ]
         )
@@ -427,6 +429,7 @@ def make_html_report_and_save(
     extra_bedpe: str | None = None,
     extra_bigwig: str | None = None,
     crosshairs: bool=False,
+    grid: bool=False,
     control_filepath: str | None = None,
     output_filepath: str | None = None,
 ) -> None:
@@ -465,6 +468,7 @@ def make_html_report_and_save(
         extra_bedpe=extra_bedpe,
         extra_bigwig=extra_bigwig,
         crosshairs=crosshairs,
+        grid=grid,
     )
 
     with open(output_filepath, "w") as f:

@@ -266,7 +266,7 @@ def plot_hic_region_matrix(
     title_fontsize=11,
     label_fontsize=10,
     tick_fontsize=9,
-    grid_lines=False,
+    grid=False,
     crosshairs=False,
     show_submatrices=False,
     extra_bedpe: list[BedpeLine] = [],
@@ -382,7 +382,7 @@ def plot_hic_region_matrix(
         ax.add_artist(scalebar)
 
     # Plot grid lines if specified (mostly just for tests)
-    if grid_lines:
+    if grid:
         xminor_ticks = FixedLocator(np.arange(startTrueX, endTrueX, resolution))
         yminor_ticks = FixedLocator(np.arange(startTrueY, endTrueY, resolution))
         ax.xaxis.set_minor_locator(xminor_ticks)
@@ -1079,12 +1079,12 @@ def plot_coverage_track(
         ax = plt.gca()
 
     # Get the coverage (VC) normalization vector
-    soom_data = sample.hic.getMatrixZoomData(
+    zoom_data = sample.hic.getMatrixZoomData(
         chr_unprefix(chr), chr_unprefix(chr), "observed", "VC", "BP", resolution
     )
     # Position of norm vector is CHROM_INDEX + 1 (as the first stored chrom is the "ALL" chromosome)
     norm_position = CHROM_INDICES[chr] + 1
-    norm_vector = soom_data.getNormVector(norm_position)
+    norm_vector = zoom_data.getNormVector(norm_position)
 
     # Subset the norm vector for the given region
     norm_start = max(0, start // resolution)
@@ -1099,7 +1099,8 @@ def plot_coverage_track(
             norm_vector, (0, (end - CHROM_SIZES[chr]) // resolution), "constant"
         )
 
-    positions = (np.arange(norm_vector.size) * resolution) + start
+    # 0.5 offset correction as dealing with discrete bins
+    positions = ((np.arange(norm_vector.size) + 0.5) * resolution) + start
 
     if vertical:
         ax.barh(positions, norm_vector, height=resolution, color=bar_color)
@@ -1198,17 +1199,8 @@ def plot_bigwig_track(
     if end > CHROM_SIZES[chr]:
         data = np.pad(data, (0, int((end - CHROM_SIZES[chr]) // bin_width)+1), "constant")
 
-    # TODO: Using an arbitrary region for normalization for now, but probably want to choose a different normalization region at some point
-    normalizer = np.nanmax(bw_handle.stats(
-        "chr2",
-        20000000,
-        20000000 + (safe_end - safe_start),
-        type="mean",
-        nBins=num_bins,
-        numpy=True,
-    ))
-    if np.isnan(normalizer) or normalizer == 0:
-        normalizer = np.nanmax(data)
+    # TODO: Using an arbitrary normalization for now, but probably want to choose a different normalization at some point
+    normalizer = np.sqrt(bw_handle.header()["maxVal"])
 
     positions = np.linspace(start, end, num_bins)
 
@@ -1302,7 +1294,7 @@ def plot_composite_context_and_zoom(
     call: BreakfinderCall,
     figsize=(13, 7.3),
     zoom_resolution=10000,
-    zoom_radius=400000,
+    zoom_radius=200000,
     gene_filter=None,
     title=None,
     title_fontsize=8,
@@ -1313,6 +1305,8 @@ def plot_composite_context_and_zoom(
     hide_track_axes=True,
     extra_bigwig_handles: list[tuple[str, object]] = [],
     crosshairs=False,
+    grid=False,
+    plot_at_call_resolution=False,
     **kwargs,
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
@@ -1376,6 +1370,10 @@ def plot_composite_context_and_zoom(
         chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Plot zoomed hic matrix first to get axis bounds
+    if plot_at_call_resolution and isinstance(call, BreakfinderCall):
+        zoom_resolution = call.resolution
+        zoom_radius = 20 * zoom_resolution
+
     _, (xmin, xmax), (ymin, ymax), plotted_crosshairs = plot_hic_centered_matrix(
         sample,
         chrA,
@@ -1387,6 +1385,7 @@ def plot_composite_context_and_zoom(
         ax=ax_zoom,
         extra_bedpe=extra_bedpe,
         crosshairs=crosshairs,
+        grid=grid,
         **kwargs,
     )
 
