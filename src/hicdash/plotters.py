@@ -16,6 +16,7 @@ from hicdash.constants import (
     GENE_ANNOTATIONS,
     BEDPE_COLORS,
     BIGWIG_COLORS,
+    MARKER_SIZE_DICT,
 )
 from hicdash.definitions import (
     to_strand,
@@ -257,6 +258,7 @@ def plot_hic_region_matrix(
     ax: plt.Axes | None,
     minimal=False,
     show_breakfinder_calls=True,
+    breakfinder_highlight:BreakfinderCall | BedpeLine | None=None,
     breakfinder_marker="+",
     breakfinder_color="black",
     normalization="NONE",
@@ -270,7 +272,7 @@ def plot_hic_region_matrix(
     crosshairs=False,
     show_submatrices=False,
     extra_bedpe: list[BedpeLine] = [],
-) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str]]]:
+) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str, float]]]:
     """Plots a specified Hi-C region.
 
     For most accurate alignment, the regions should be aligned at the start of a resolution bin.
@@ -394,9 +396,9 @@ def plot_hic_region_matrix(
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
 
         # Iterate through annotation sets: (annotations, color)
-        for annotation_set, annotation_color in [
+        for annotation_set, annotation_color in list(zip(extra_bedpe, BEDPE_COLORS)) + [
             (sample.breakfinder_calls, breakfinder_color)
-        ] + list(zip(extra_bedpe, BEDPE_COLORS)):
+        ]:
 
             # Select only breakpoints that involve these two chromosomes
             for call in annotation_set:
@@ -438,6 +440,15 @@ def plot_hic_region_matrix(
                     else:
                         continue
 
+                alpha = 1
+                size = MARKER_SIZE_DICT[resolution]
+                mew=size / 10
+                if breakfinder_highlight is not None: 
+                    if call != breakfinder_highlight:
+                        alpha = 0.6
+                        # size *= 0.6
+                        mew *= 0.6
+
                 # If the breakpoint is within the bounds of the plot, plot it
                 if startTrueX <= posX <= endTrueX and startTrueY <= posY <= endTrueY:
 
@@ -456,12 +467,10 @@ def plot_hic_region_matrix(
                             linewidth=1,
                             edgecolor=annotation_color,
                             facecolor="none",
-                            alpha=0.8,
+                            alpha=alpha,
                         )
                         ax.add_patch(rect)
 
-                    # Marker size
-                    size = 18
 
                     # Plot the marker on the plot
                     # If a simple bedpe, then only plot a marker if the start and end are the same
@@ -474,6 +483,8 @@ def plot_hic_region_matrix(
                             marker=breakfinder_marker,
                             color=annotation_color,
                             markersize=size,
+                            mew=mew,
+                            alpha=alpha,
                         )
 
                         if crosshairs:
@@ -482,15 +493,17 @@ def plot_hic_region_matrix(
                                 color=annotation_color,
                                 linestyle=(0, (1, 5)),
                                 linewidth=1,
+                                alpha=alpha,
                             )
                             ax.axhline(
                                 posY,
                                 color=annotation_color,
                                 linestyle=(0, (1, 5)),
                                 linewidth=1,
+                                alpha=alpha,
                             )
-                            plotted_crosshairs.append((chrX, posX, annotation_color))
-                            plotted_crosshairs.append((chrY, posY, annotation_color))
+                            plotted_crosshairs.append((chrX, posX, annotation_color, alpha))
+                            plotted_crosshairs.append((chrY, posY, annotation_color, alpha))
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
@@ -508,7 +521,7 @@ def plot_hic_centered_matrix(
     resolution: int,
     radius: int,
     **kwargs,
-) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str]]]:
+) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str, float]]]:
     """Plots a single centered Hi-C matrix and returns the axes, as well as the (startX, endX) and (startY, endY) axis limits.
 
     The axis limits have to be calculated here to ensure the plot is centered and axis limits are aligned with bins.
@@ -849,7 +862,7 @@ def plot_gene_track(
     min_rows=3,
     protein_coding_only=True,
     crosshairs: bool=False, 
-    plotted_crosshairs: list[tuple[str, int, str]]=[],
+    plotted_crosshairs: list[tuple[str, int, str, float]]=[],
 ) -> plt.Axes:
     """Plot a gene track (based on GENE_ANNOTATIONS) for a given range.
 
@@ -1031,7 +1044,7 @@ def plot_gene_track(
 
     # Add crosshairs if specified
     if crosshairs:
-        for chr, pos, col in plotted_crosshairs:
+        for chr, pos, col, alpha in plotted_crosshairs:
             if chr == chr:
                 if vertical:
                     ax.axhline(
@@ -1039,6 +1052,7 @@ def plot_gene_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
                 else:
                     ax.axvline(
@@ -1046,6 +1060,7 @@ def plot_gene_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
 
     return ax
@@ -1120,7 +1135,7 @@ def plot_coverage_track(
 
     # Add crosshairs if specified
     if crosshairs:
-        for chr, pos, col in plotted_crosshairs:
+        for chr, pos, col, alpha in plotted_crosshairs:
             if chr == chr:
                 if vertical:
                     ax.axhline(
@@ -1128,6 +1143,7 @@ def plot_coverage_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
                 else:
                     ax.axvline(
@@ -1135,6 +1151,7 @@ def plot_coverage_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
 
 
@@ -1177,7 +1194,7 @@ def plot_bigwig_track(
     label: str = "",
     color="blue",
     crosshairs: bool=False, 
-    plotted_crosshairs: list[tuple[str, int, str]]=[],
+    plotted_crosshairs: list[tuple[str, int, str, float]]=[],
 ) -> plt.Axes:
 
     # Check if chromosomes are prefixed or unprefixed
@@ -1227,7 +1244,7 @@ def plot_bigwig_track(
 
     # Add crosshairs if specified
     if crosshairs:
-        for chr, pos, col in plotted_crosshairs:
+        for chr, pos, col, alpha in plotted_crosshairs:
             if chr == chr:
                 if vertical:
                     ax.axhline(
@@ -1235,6 +1252,7 @@ def plot_bigwig_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
                 else:
                     ax.axvline(
@@ -1242,6 +1260,7 @@ def plot_bigwig_track(
                         color=col,
                         linestyle=(0, (1, 5)),
                         linewidth=1,
+                        alpha=alpha,
                     )
 
 
@@ -1386,6 +1405,7 @@ def plot_composite_context_and_zoom(
         extra_bedpe=extra_bedpe,
         crosshairs=crosshairs,
         grid=grid,
+        breakfinder_highlight=call,
         **kwargs,
     )
 
@@ -1514,6 +1534,55 @@ def plot_composite_context_and_zoom(
 
     return fig
 
+def plot_composite_multires_breakpoint(
+    sample: ArimaPipelineSample,
+    call: BreakfinderCall | BedpeLine,
+    extra_bedpe: list[BedpeLine] = [],
+    figheight=2.5,
+    default_zoom_resolution=10000,
+) -> plt.Figure: 
+    """Plot a single breakpoint at multiple resolutions in a row."""
+
+    resolutions = [1000000, 500000, 100000, 50000, 10000, 5000, 1000]
+    num_plots = len(resolutions)
+    fig, ax = plt.subplots(1, num_plots, figsize=(num_plots * figheight, figheight))
+
+    for i, resolution in enumerate(resolutions):
+        if isinstance(call, BreakfinderCall):
+            chrA, posA = call.breakpointA.chr, call.breakpointA.pos
+            chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+            zoom_resolution=call.resolution
+        else:
+            chrA, posA = call.chrA, (call.startA + call.endA) // 2
+            chrB, posB = call.chrB, (call.startB + call.endB) // 2
+            zoom_resolution=default_zoom_resolution
+
+        _, _, _, _ = plot_hic_centered_matrix(
+            sample,
+            chrA,
+            posA,
+            chrB,
+            posB,
+            resolution=resolution,
+            radius=20*resolution,
+            ax=ax[i],
+            minimal=True,
+            show_submatrices=True,
+            extra_bedpe=extra_bedpe,
+            breakfinder_highlight=call,
+        )
+
+        xlabel_weight = "normal"
+        if resolution == zoom_resolution:
+            # Make spine width greater for the plot corresponding to zoom level
+            ax[i].spines[["top", "right", "left", "bottom"]].set_linewidth(3)
+            xlabel_weight = "bold"
+
+        ax[i].set_xlabel(f"{int_to_resolution(resolution)} resolution\n{int_to_resolution(2*20*resolution)} window", fontweight=xlabel_weight)
+        ax[i].set_ylabel("")
+
+    return fig
+
 
 def plot_composite_compare_two(
     sample1: ArimaPipelineSample,
@@ -1568,6 +1637,7 @@ def plot_composite_compare_two(
         resolution=resolution,
         radius=radius,
         ax=ax1_center,
+        breakfinder_highlight=call,
     )
     _, (xmin2, xmax2), (ymin2, ymax2), _ = plot_hic_centered_matrix(
         sample2,
@@ -1578,6 +1648,7 @@ def plot_composite_compare_two(
         resolution=resolution,
         radius=radius,
         ax=ax2_center,
+        breakfinder_highlight=call,
     )
 
     # Assert axis limits are the same

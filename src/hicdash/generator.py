@@ -11,6 +11,7 @@ from hicdash.plotters import (
     plot_composite_double_whole_matrix,
     plot_composite_compare_two,
     plot_composite_context_and_zoom,
+    plot_composite_multires_breakpoint,
     plot_qc,
 )
 from hicdash.readers import read_sample, read_bedpe
@@ -312,6 +313,11 @@ def make_html_call(
     )
     call_region_plot_base64 = fig_to_base64_and_close(calL_region_plot_fig)
 
+    multi_res_plot_fig = plot_composite_multires_breakpoint(
+        sample, call, extra_bedpe=extra_bedpe_data,
+    )
+    multi_res_plot_base64 = fig_to_base64_and_close(multi_res_plot_fig)
+
     # Maybe generate control comparison plot
     html_maybe_comparison = make_html_comparison_plot(sample, control, call)
 
@@ -328,6 +334,7 @@ def make_html_call(
         chrA=chrA,
         chrB=chrB,
         call_region_plot_base64=call_region_plot_base64,
+        multi_res_plot_base64=multi_res_plot_base64,
         html_maybe_comparison=html_maybe_comparison,
     )
 
