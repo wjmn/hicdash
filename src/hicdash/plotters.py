@@ -252,7 +252,7 @@ def plot_hic_region_matrix(
     label_fontsize=10,
     tick_fontsize=9,
     grid_lines=False,
-) -> plt.Axes:
+) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
     """Plots a specified Hi-C region.
 
     For most accurate alignment, the regions should be aligned at the start of a resolution bin.
@@ -260,6 +260,8 @@ def plot_hic_region_matrix(
     At the moment, only tested for regions of the same size (i.e. a square matrix).
 
     The color scale is capped at a quarter of the maximum value in the matrix by default.
+
+    The axis limits have to be calculated here to ensure the plot is centered and axis limits are aligned with bins.
 
     """
 
@@ -392,7 +394,7 @@ def plot_hic_region_matrix(
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
-    return ax
+    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY)
 
 
 def plot_hic_centered_matrix(
@@ -422,16 +424,16 @@ def plot_hic_centered_matrix(
     startY = centerY - radius
 
     # Next get end points, and add a bin - 1 to the end to center the plot
-    endX = centerX + radius + resolution - 1
-    endY = centerY + radius + resolution - 1
+    endX = centerX + radius 
+    endY = centerY + radius 
 
     # Make the region objects
     regionX = Region(chrX, startX, endX)
     regionY = Region(chrY, startY, endY)
 
-    ax = plot_hic_region_matrix(sample, regionX, regionY, resolution, **kwargs)
+    ax, (startTrueX, endTrueX), (startTrueY, endTrueY) = plot_hic_region_matrix(sample, regionX, regionY, resolution, **kwargs)
 
-    return ax, (startX, endX), (startY, endY)
+    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY)
 
 
 def plot_hic_chr_context(
