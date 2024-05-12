@@ -25,6 +25,7 @@ from hicdash.definitions import (
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.ticker import FixedLocator, MultipleLocator
 from hicdash.utilities import chr_prefix, chr_unprefix, to_mega, get_bin_extent, int_to_resolution
+import pyBigWig
 
 
 # -------------------------------------------------------------------------------
@@ -1078,6 +1079,79 @@ def plot_coverage_track(
             fontdict={"fontsize": label_fontsize},
         )
 
+def plot_bigwig_track(
+    bw_handle: object,
+    chr: str,
+    start: int,
+    end: int,
+    num_bins=1000,
+    hide_axes=True,
+    vertical=False,
+    ax=None,
+    fontsize=8,
+    label: str="",
+    color="blue",
+) -> plt.Axes:
+
+    # Check if chromosomes are prefixed or unprefixed
+    if "chr1" in bw_handle.chroms().keys():
+        pass
+    else:
+        chr = chr_unprefix(chr)
+    
+    # Get the data from the bigwig file
+    data = bw_handle.stats(chr, start, end, type="mean", nBins=num_bins, numpy=True)
+
+    # TODO: Using an arbitrary region for normalization for now, but probably want to choose a different normalization region at some point
+    normalizer = bw_handle.stats("chr2", 20000000, 20000000+(end-start), type="mean", nBins=num_bins, numpy=True).max()
+
+    positions = np.linspace(start, end, num_bins)
+
+    # Plot the data depending on if horizontal or vertical axis
+    if ax is None:
+        ax = plt.gca()
+
+    if vertical:
+        # Fill from right to data peak on left
+        ax.fill_betweenx(positions, np.zeros(num_bins), data, color=color)
+        ax.set_ylim(start, end)
+        ax.invert_yaxis()
+        ax.set_xlim(0, normalizer)
+        ax.invert_xaxis()
+    else:
+        ax.fill_between(positions, np.zeros(num_bins), data, color=color)
+        ax.set_xlim(start, end)
+        ax.set_ylim(0, normalizer)
+
+    if hide_axes:
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+        ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
+
+    # Add label
+    if vertical:
+        ax.text(
+            0,
+            1,
+            label,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"fontsize": fontsize},
+            rotation=90,
+        )
+    else:
+        ax.text(
+            0,
+            1,
+            label,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+            fontdict={"fontsize": fontsize},
+        )
+
+
 
 # -------------------------------------------------------------------------------
 # USEFUL COMPOSITE PLOTS
@@ -1108,6 +1182,7 @@ def plot_composite_context_and_zoom(
     title_ha="left",
     gene_fontsize=7,
     extra_bedpe: list[BedpeLine]=[],
+    extra_bigwig_handles: list[tuple[str, object]]=[],
     **kwargs
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
