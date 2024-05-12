@@ -319,8 +319,8 @@ def plot_hic_region_matrix(
         )
 
         # Label the axes
-        ax.set_xlabel(f"{chrX} (Mb)", fontdict={"fontsize": label_fontsize})
-        ax.set_ylabel(f"{chrY} (Mb)", fontdict={"fontsize": label_fontsize}, rotation=90)
+        ax.set_xlabel(f"{chrX}", fontdict={"fontsize": label_fontsize})
+        ax.set_ylabel(f"{chrY}", fontdict={"fontsize": label_fontsize}, rotation=90)
         ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
 
         # Set tick param customizations
