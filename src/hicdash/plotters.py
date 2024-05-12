@@ -252,6 +252,7 @@ def plot_hic_region_matrix(
     label_fontsize=10,
     tick_fontsize=9,
     grid_lines=False,
+    crosshairs=False,
 ) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
     """Plots a specified Hi-C region.
 
@@ -322,6 +323,9 @@ def plot_hic_region_matrix(
         ax.set_ylabel(f"{chrY} (Mb)", fontdict={"fontsize": label_fontsize}, rotation=90)
         ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
 
+        # Set tick param customizations
+        ax.xaxis.set_tick_params(which="major", length=5)
+        ax.yaxis.set_tick_params(which="major", length=5)
         ax.xaxis.tick_bottom()
         ax.yaxis.tick_right()
         ax.yaxis.set_label_position("right")
@@ -357,7 +361,7 @@ def plot_hic_region_matrix(
         yminor_ticks = FixedLocator(np.arange(startTrueY, endTrueY, resolution))
         ax.xaxis.set_minor_locator(xminor_ticks)
         ax.yaxis.set_minor_locator(yminor_ticks)
-        ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+        ax.grid(True, which="both", linestyle="solid", linewidth=0.5, color="gainsboro")
 
 
     # Plot annotations
@@ -377,9 +381,28 @@ def plot_hic_region_matrix(
             # If the breakpoint is within the bounds of the plot, plot it
             if startTrueX <= posX <= endTrueX  and startTrueY <= posY <= endTrueY:
 
+                # Plot the whole ubmatrix of breakfinder call if start and end are different
+                if call.breakpointA.start != call.breakpointA.end and call.breakpointB.start != call.breakpointB.end:
+                    callStartX = call.breakpointA.start
+                    callEndX = call.breakpointA.end
+                    callStartY = call.breakpointB.start
+                    callEndY = call.breakpointB.end
+                    # Plot rectangle
+                    rect = Rectangle(
+                        (callStartX, callStartY),
+                        callEndX - callStartX,
+                        callEndY - callStartY,
+                        linewidth=1,
+                        edgecolor=breakfinder_color,
+                        facecolor="none",
+                        alpha=0.5,
+                    )
+                    ax.add_patch(rect)
+
                 # Normalize the marker size depending on resolution
                 # TODO: Make this sizing a bit more consistent.
-                size = max(10, 40 * 100000 / ((endY - startY) // 2))
+                #size = max(10, 40 * 100000 / ((endY - startY) // 2))
+                size = 10
 
                 # Plot the marker on the plot
                 ax.plot(
@@ -389,6 +412,11 @@ def plot_hic_region_matrix(
                     color=breakfinder_color,
                     markersize=size,
                 )
+
+                # Add crosshairs if specified
+                if crosshairs:
+                    ax.axvline(posX, color=breakfinder_color, linestyle=(0, (1, 5)), linewidth=1)
+                    ax.axhline(posY, color=breakfinder_color, linestyle=(0, (1, 5)), linewidth=1)
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
