@@ -14,7 +14,7 @@ from hicdash.definitions import (
     Strand,
     Breakpoint,
 )
-from hicdash.utilities import chr_prefix, chr_unprefix, to_mega, suffixed_string_to_int
+from hicdash.utilities import chr_prefix, chr_unprefix, to_mega, resolution_to_int
 
 
 def read_qc(qc_filepath: str) -> QCData:
@@ -113,7 +113,7 @@ def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall]:
         pos2 = end2 if strand2 == Strand.POS else start2
         breakpointB = Breakpoint(chr2, start2, end2, pos2, strand2)
 
-        resolution = suffixed_string_to_int(row["resolution"])
+        resolution = resolution_to_int(row["resolution"])
         neg_log_pval = row["-logP"]
 
         # Ensure breakpointA has the chromosome with the lower index

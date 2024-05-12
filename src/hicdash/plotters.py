@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from numpy.typing import NDArray
 from matplotlib.colors import LinearSegmentedColormap
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from hicstraw import HiCFile
 from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES, GENE_ANNOTATIONS
 from hicdash.definitions import (
@@ -21,7 +22,8 @@ from hicdash.definitions import (
     Region,
 )
 from matplotlib.patches import Rectangle, Ellipse
-from hicdash.utilities import chr_prefix, chr_unprefix, to_mega
+from matplotlib.ticker import FixedLocator, MultipleLocator
+from hicdash.utilities import chr_prefix, chr_unprefix, to_mega, get_bin_extent, int_to_resolution
 
 
 # -------------------------------------------------------------------------------
@@ -30,7 +32,7 @@ from hicdash.utilities import chr_prefix, chr_unprefix, to_mega
 
 # Default red colormap for all Hi-C plots (similar to Juicebox) with gray masking
 REDMAP = LinearSegmentedColormap.from_list("bright_red", [(1, 1, 1), (1, 0, 0)])
-REDMAP.set_bad(color="lightgray")
+REDMAP.set_bad(color="gainsboro")
 
 
 # -------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ def get_hic_region_data(
     3. The data retrieval bounds must be constrained to (0, chrom_size).
 
     If the resulting data is smaller than expected (i.e. at the ends of a chromosome),
-    the shape is adjusted to match the expected region size with -1 as a fill (for plotting with gray masking).
+    the shape is adjusted to match the expected region size with negative floats as a fill (for plotting with gray masking).
 
     This returns a numpy array with regionX on the x axis and regionY on the y axis.
     (the default from hicstraw is the first region on the y axis and the second region on the x axis,
@@ -70,16 +72,22 @@ def get_hic_region_data(
     chrX, startX, endX = regionX.chr, regionX.start, regionX.end
     chrY, startY, endY = regionY.chr, regionY.start, regionY.end
 
-    # First, calculate the expected size of the final hic data matrix
-    # hictraw is a bit quirky - if the range end is the start of a bin, it includes that bin as well
-    expX = ((endX + resolution) - (startX // resolution * resolution)) // resolution
-    expY = ((endY + resolution) - (startY // resolution * resolution)) // resolution
+    # Get true extents
+    startTrueX, endTrueX = get_bin_extent(startX, endX, resolution)
+    startTrueY, endTrueY = get_bin_extent(startY, endY, resolution)
+
+    # Calculate the expected size of the final hic data matrix 
+    # The true extents are guaranteed to align to a bin
+    expX = (endTrueX - startTrueX) // resolution
+    expY = (endTrueY - startTrueY) // resolution
 
     # Next, get the actual .hic data.
     # hicstraw only accepts first arg chr <= second arg chr, so we need to switch chromosomes and transpose if needed.
     # Also need to use the unprefixed chromosome names for hicstraw.
     # Also guard the bounds of the data retrieval to be within 0 and the chromosome sizes.
+    # Retrieve one less than the end to ensure the prevent retrieving an extra bin if bin falls on bin border
     if CHROM_INDICES[chrY] <= CHROM_INDICES[chrX]:
+        # Retrieves chrY on 1st axis (y axis) and chrX on 2nd axis (x axis), so no need to transpose
         zoom_data = sample.hic.getMatrixZoomData(
             chr_unprefix(chrY),
             chr_unprefix(chrX),
@@ -90,11 +98,12 @@ def get_hic_region_data(
         )
         data = zoom_data.getRecordsAsMatrix(
             max(0, startY),
-            min(endY, CHROM_SIZES[chrY]),
+            min(endY-1, CHROM_SIZES[chrY]),
             max(0, startX),
-            min(endX, CHROM_SIZES[chrX]),
+            min(endX-1, CHROM_SIZES[chrX]),
         )
     else:
+        # Retrieves chrX on 1st axis (y axis) and chrY on 2nd axis (x axis) so need to transpose after
         zoom_data = sample.hic.getMatrixZoomData(
             chr_unprefix(chrX),
             chr_unprefix(chrY),
@@ -105,9 +114,9 @@ def get_hic_region_data(
         )
         data = zoom_data.getRecordsAsMatrix(
             max(0, startX),
-            min(endX, CHROM_SIZES[chrX]),
+            min(endX-1, CHROM_SIZES[chrX]),
             max(0, startY),
-            min(endY, CHROM_SIZES[chrY]),
+            min(endY-1, CHROM_SIZES[chrY]),
         )
         # Data was retrieved as (x, y) - transpose to (y, x) for consistency
         data = data.T
@@ -123,12 +132,13 @@ def get_hic_region_data(
             min(endX, CHROM_SIZES[chrX] + resolution)
             - (max(0, startX) // resolution * resolution)
         ) // resolution
+        # Some calls may have been given out of chromosome bounds anyway: guard against this
         boundedY = max(boundedY, 1)
         boundedX = max(boundedX, 1)
         data = np.zeros((boundedY, boundedX))
 
     # If the data shape is not as expected, then the provided range is probably at a boundary.
-    # Therefore, bring to correct shape and fill boundaries with -1 (which will be grey-masked later)
+    # Therefore, bring to correct shape and fill boundaries with negative values (which will be grey-masked later)
     # Fill in missing data on Y-axis (axis 0)
     if data.shape[0] < expY:
         # If filler is needed at both ends, calculate the amount
@@ -150,9 +160,9 @@ def get_hic_region_data(
         if startX < 0 and endX > CHROM_SIZES[chrX]:
             xStartExcess = (0 - startX) // resolution
             xEndExcess = (endX - CHROM_SIZES[chrX]) // resolution
-            fillerXStart = np.zeros((data.shape[0], xStartExcess))
-            fillerXEnd = np.zeros((data.shape[0], xEndExcess))
-            data = np.htstack([fillerXStart, data, fillerXEnd])
+            fillerXStart = np.zeros((data.shape[0], xStartExcess)) - 1
+            fillerXEnd = np.zeros((data.shape[0], xEndExcess)) - 1
+            data = np.hstack([fillerXStart, data, fillerXEnd])
         else:
             filler = np.zeros((data.shape[0], expX - data.shape[1])) - 1
             if startX < 0:
@@ -241,7 +251,8 @@ def plot_hic_region_matrix(
     title_fontsize=11,
     label_fontsize=10,
     tick_fontsize=9,
-) -> tuple[plt.Axes]:
+    grid_lines=False,
+) -> plt.Axes:
     """Plots a specified Hi-C region.
 
     For most accurate alignment, the regions should be aligned at the start of a resolution bin.
@@ -260,22 +271,26 @@ def plot_hic_region_matrix(
     data = get_hic_region_data(
         sample, regionX, regionY, resolution, normalization=normalization
     )
-    masked = np.ma.masked_where(data == -1, data)
+    masked = np.ma.masked_where(data < 0, data)
 
     # Set max of color scale to a quarter ot the max value (but at least 1)
     if vmax is None:
         vmax = max(1, masked.max() // 4)
 
-    # Plot the heatmap
-    ax.matshow(masked, cmap=cmap, vmin=0, vmax=vmax, aspect="auto")
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-
     # Unpack region for convenience
     chrX, startX, endX = regionX.chr, regionX.start, regionX.end
     chrY, startY, endY = regionY.chr, regionY.start, regionY.end
-    centerX = (startX + endX) // 2
-    centerY = (startY + endY) // 2
+
+    # Get the "true" extent of the heatmap image (only an issue if the region start and end are not resolution bins)
+    # True extent here is defined as the start of the first bin to the end of the last bin
+    startTrueX, endTrueX = get_bin_extent(startX, endX, resolution)
+    startTrueY, endTrueY = get_bin_extent(startY, endY, resolution)
+    centerTrueX = (startTrueX + endTrueX) // 2
+    centerTrueY = (startTrueY + endTrueY) // 2
+
+    ax.matshow(masked, cmap=cmap, vmin=0, vmax=vmax, aspect="auto", extent=[startTrueX, endTrueX, endTrueY, startTrueY])
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
 
     # Add axis labels (depending on level of detail)
     if minimal:
@@ -290,29 +305,58 @@ def plot_hic_region_matrix(
         # Make a start, center and end tick for each axis (and align appropriately on the axis)
         # Note: because of matshow, the bounds of the plot is actually offset by 0.5
         ax.set_xticks(
-            [-0.5, data.shape[1] // 2, data.shape[1] - 0.5],
-            map(to_mega, [startX, centerX, endX]),
+            [startTrueX, centerTrueX, endTrueX],
+            map(lambda x: f"{x:,}", [startTrueX, centerTrueX, endTrueX]),
         )
-        xticklabels = ax.get_xticklabels()
-        xticklabels[0].set_horizontalalignment("left")
-        xticklabels[-1].set_horizontalalignment("right")
 
         ax.set_yticks(
-            [-0.5, data.shape[0] // 2, data.shape[0] - 0.5],
-            map(to_mega, [startY, centerY, endY]),
+            [startTrueY, centerTrueY, endTrueY],
+            map(lambda x: f"{x:,}", [startTrueY, centerTrueY, endTrueY]),
+            rotation=90,
         )
-        yticklabels = ax.get_yticklabels()
-        yticklabels[0].set_verticalalignment("top")
-        yticklabels[-1].set_verticalalignment("bottom")
 
         # Label the axes
         ax.set_xlabel(f"{chrX} (Mb)", fontdict={"fontsize": label_fontsize})
-        ax.set_ylabel(f"{chrY} (Mb)", fontdict={"fontsize": label_fontsize})
+        ax.set_ylabel(f"{chrY} (Mb)", fontdict={"fontsize": label_fontsize}, rotation=90)
         ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
-        ax.tick_params(axis="both", which="minor", labelsize=tick_fontsize)
+
         ax.xaxis.tick_bottom()
         ax.yaxis.tick_right()
         ax.yaxis.set_label_position("right")
+
+        # Align the tick labels neatly
+        xticklabels = ax.get_xticklabels()
+        xticklabels[0].set_horizontalalignment("left")
+        xticklabels[0].set_fontsize(tick_fontsize-1)
+        xticklabels[-1].set_horizontalalignment("right")
+        xticklabels[-1].set_fontsize(tick_fontsize-1)
+
+        yticklabels = ax.get_yticklabels()
+        yticklabels[0].set_verticalalignment("top")
+        yticklabels[0].set_fontsize(tick_fontsize-1)
+        yticklabels[1].set_verticalalignment("center")
+        yticklabels[-1].set_verticalalignment("bottom")
+        yticklabels[-1].set_fontsize(tick_fontsize-1)
+
+        # Annotate the resolution of the heatmap
+        scalebar = AnchoredSizeBar(ax.transData,
+                                resolution, 
+                                int_to_resolution(resolution), 
+                                'lower left', 
+                                pad=0.5,
+                                frameon=False,
+                                fontproperties={'size': tick_fontsize},
+                                size_vertical=resolution,)
+        ax.add_artist(scalebar)
+
+    # Plot grid lines if specified (mostly just for tests)
+    if grid_lines:
+        xminor_ticks = FixedLocator(np.arange(startTrueX, endTrueX, resolution))
+        yminor_ticks = FixedLocator(np.arange(startTrueY, endTrueY, resolution))
+        ax.xaxis.set_minor_locator(xminor_ticks)
+        ax.yaxis.set_minor_locator(yminor_ticks)
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+
 
     # Plot annotations
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
@@ -320,25 +364,16 @@ def plot_hic_region_matrix(
         # Select only breakpoints that involve these two chromosomes
         for call in sample.breakfinder_calls:
             if call.breakpointA.chr == chrX and call.breakpointB.chr == chrY:
-                # Get positions as a fraction of the range then multiply by matrix size
-                pby = (
-                    (call.breakpointB.pos - startY) / (endY - startY) * (data.shape[0])
-                )
-                pbx = (
-                    (call.breakpointA.pos - startX) / (endX - startX) * (data.shape[1])
-                )
+                posX = call.breakpointA.pos
+                posY = call.breakpointB.pos
             elif call.breakpointA.chr == chrY and call.breakpointB.chr == chrX:
-                pby = (
-                    (call.breakpointA.pos - startX) / (endX - startX) * (data.shape[0])
-                )
-                pbx = (
-                    (call.breakpointB.pos - startY) / (endY - startY) * (data.shape[1])
-                )
+                posX = call.breakpointB.pos
+                posY = call.breakpointA.pos
             else:
                 continue
 
             # If the breakpoint is within the bounds of the plot, plot it
-            if 0 <= pby <= data.shape[0] and 0 <= pbx <= data.shape[1]:
+            if startTrueX <= posX <= endTrueX  and startTrueY <= posY <= endTrueY:
 
                 # Normalize the marker size depending on resolution
                 # TODO: Make this sizing a bit more consistent.
@@ -346,8 +381,8 @@ def plot_hic_region_matrix(
 
                 # Plot the marker on the plot
                 ax.plot(
-                    pbx,
-                    pby,
+                    posX,
+                    posY,
                     marker=breakfinder_marker,
                     color=breakfinder_color,
                     markersize=size,

@@ -30,8 +30,8 @@ def to_mega(number: int, dp=1) -> float:
     return round(number / 1e6, dp)
 
 
-def suffixed_string_to_int(suffixed_str: str) -> int:
-    """ Convert a string with a "Mb" or "kb" suffix to an int.
+def resolution_to_int(suffixed_str: str) -> int:
+    """Convert a string with a "Mb" or "kb" suffix to an int.
     """
     if suffixed_str.endswith("Mb"):
         return int(float(suffixed_str[:-2]) * 1e6)
@@ -40,3 +40,33 @@ def suffixed_string_to_int(suffixed_str: str) -> int:
     else:
         return int(float(suffixed_str))
 
+def int_to_resolution(resolution: int) -> str:
+    """Convert an int resolution into a suffixed with either "kb" or "Mb".
+
+    Rounds to the nearest whole thousand (kb) or million (Mb). 
+
+    """
+    if resolution >= 1000000:
+        return f"{resolution // 1000000}Mb"
+    elif resolution >= 1000:
+        return f"{resolution // 1000}kb"
+    else:
+        return f"{resolution}b"
+
+def get_bin_extent(start: int, end: int, resolution: int) -> tuple[int, int]:
+    """Gives the "true" start and end points aligned to resolution bins. 
+
+    The "true" start and end points refer to the start of the bin
+    containing the given start argument, and the end of the bin containing
+    the given end argument (i.e. the start of the bin after the bin 
+    containing the end argument). 
+
+    If "end" is exactly on a bin border, then it considers the true end to 
+    be the end of the bin just before the bin containing the end argument. 
+    (hence a -1 correction here). 
+    """
+
+    trueStart = start // resolution * resolution
+    trueEnd = ((end - 1) + resolution) // resolution * resolution 
+
+    return (trueStart, trueEnd)

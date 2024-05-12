@@ -152,10 +152,13 @@ class Breakpoint:
     For convenience, the predicted position of each breakpoint
     (based on strandness - see Strand enum) is included as `pos`.
 
+    Other breakpoint callers - such as EagleC - give only a single position.
+    In this case, start, end, and pos will all have the same value. 
+
     - Positive strand: the "end" coordinate is the predicted breakpoint
     - Negative strand: the "start" coordinate is the predicted breakpoint
 
-    Chromosomes in these objects should be guaranteed to be prefixed with "chr".
+    Chromosomes in these objects must be prefixed with "chr". 
     """
 
     chr: str
