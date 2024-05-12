@@ -9,7 +9,14 @@ from numpy.typing import NDArray
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from hicstraw import HiCFile
-from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES, GENE_ANNOTATIONS, BEDPE_COLORS
+from hicdash.constants import (
+    CHROMS,
+    CHROM_INDICES,
+    CHROM_SIZES,
+    GENE_ANNOTATIONS,
+    BEDPE_COLORS,
+    BIGWIG_COLORS,
+)
 from hicdash.definitions import (
     to_strand,
     QCData,
@@ -24,7 +31,13 @@ from hicdash.definitions import (
 )
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.ticker import FixedLocator, MultipleLocator
-from hicdash.utilities import chr_prefix, chr_unprefix, to_mega, get_bin_extent, int_to_resolution
+from hicdash.utilities import (
+    chr_prefix,
+    chr_unprefix,
+    to_mega,
+    get_bin_extent,
+    int_to_resolution,
+)
 import pyBigWig
 
 
@@ -78,7 +91,7 @@ def get_hic_region_data(
     startTrueX, endTrueX = get_bin_extent(startX, endX, resolution)
     startTrueY, endTrueY = get_bin_extent(startY, endY, resolution)
 
-    # Calculate the expected size of the final hic data matrix 
+    # Calculate the expected size of the final hic data matrix
     # The true extents are guaranteed to align to a bin
     expX = (endTrueX - startTrueX) // resolution
     expY = (endTrueY - startTrueY) // resolution
@@ -100,9 +113,9 @@ def get_hic_region_data(
         )
         data = zoom_data.getRecordsAsMatrix(
             max(0, startY),
-            min(endY-1, CHROM_SIZES[chrY]),
+            min(endY - 1, CHROM_SIZES[chrY]),
             max(0, startX),
-            min(endX-1, CHROM_SIZES[chrX]),
+            min(endX - 1, CHROM_SIZES[chrX]),
         )
     else:
         # Retrieves chrX on 1st axis (y axis) and chrY on 2nd axis (x axis) so need to transpose after
@@ -116,9 +129,9 @@ def get_hic_region_data(
         )
         data = zoom_data.getRecordsAsMatrix(
             max(0, startX),
-            min(endX-1, CHROM_SIZES[chrX]),
+            min(endX - 1, CHROM_SIZES[chrX]),
             max(0, startY),
-            min(endY-1, CHROM_SIZES[chrY]),
+            min(endY - 1, CHROM_SIZES[chrY]),
         )
         # Data was retrieved as (x, y) - transpose to (y, x) for consistency
         data = data.T
@@ -256,7 +269,7 @@ def plot_hic_region_matrix(
     grid_lines=False,
     crosshairs=False,
     show_submatrices=False,
-    extra_bedpe: list[BedpeLine]=[],
+    extra_bedpe: list[BedpeLine] = [],
 ) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
     """Plots a specified Hi-C region.
 
@@ -295,7 +308,14 @@ def plot_hic_region_matrix(
     centerTrueX = (startTrueX + endTrueX) // 2
     centerTrueY = (startTrueY + endTrueY) // 2
 
-    ax.matshow(masked, cmap=cmap, vmin=0, vmax=vmax, aspect="auto", extent=[startTrueX, endTrueX, endTrueY, startTrueY])
+    ax.matshow(
+        masked,
+        cmap=cmap,
+        vmin=0,
+        vmax=vmax,
+        aspect="auto",
+        extent=[startTrueX, endTrueX, endTrueY, startTrueY],
+    )
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
@@ -337,26 +357,28 @@ def plot_hic_region_matrix(
         # Align the tick labels neatly
         xticklabels = ax.get_xticklabels()
         xticklabels[0].set_horizontalalignment("left")
-        xticklabels[0].set_fontsize(tick_fontsize-1)
+        xticklabels[0].set_fontsize(tick_fontsize - 1)
         xticklabels[-1].set_horizontalalignment("right")
-        xticklabels[-1].set_fontsize(tick_fontsize-1)
+        xticklabels[-1].set_fontsize(tick_fontsize - 1)
 
         yticklabels = ax.get_yticklabels()
         yticklabels[0].set_verticalalignment("top")
-        yticklabels[0].set_fontsize(tick_fontsize-1)
+        yticklabels[0].set_fontsize(tick_fontsize - 1)
         yticklabels[1].set_verticalalignment("center")
         yticklabels[-1].set_verticalalignment("bottom")
-        yticklabels[-1].set_fontsize(tick_fontsize-1)
+        yticklabels[-1].set_fontsize(tick_fontsize - 1)
 
         # Annotate the resolution of the heatmap
-        scalebar = AnchoredSizeBar(ax.transData,
-                                resolution, 
-                                int_to_resolution(resolution), 
-                                'lower left', 
-                                pad=0.5,
-                                frameon=False,
-                                fontproperties={'size': tick_fontsize},
-                                size_vertical=resolution,)
+        scalebar = AnchoredSizeBar(
+            ax.transData,
+            resolution,
+            int_to_resolution(resolution),
+            "lower left",
+            pad=0.5,
+            frameon=False,
+            fontproperties={"size": tick_fontsize},
+            size_vertical=resolution,
+        )
         ax.add_artist(scalebar)
 
     # Plot grid lines if specified (mostly just for tests)
@@ -367,17 +389,18 @@ def plot_hic_region_matrix(
         ax.yaxis.set_minor_locator(yminor_ticks)
         ax.grid(True, which="both", linestyle="solid", linewidth=0.5, color="gainsboro")
 
-
     # Plot annotations
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
 
         # Iterate through annotation sets: (annotations, color)
-        for (annotation_set, annotation_color) in [(sample.breakfinder_calls, breakfinder_color)] + list(zip(extra_bedpe, BEDPE_COLORS)):
+        for annotation_set, annotation_color in [
+            (sample.breakfinder_calls, breakfinder_color)
+        ] + list(zip(extra_bedpe, BEDPE_COLORS)):
 
             # Select only breakpoints that involve these two chromosomes
             for call in annotation_set:
 
-                # Check if call is a breakfinder call or a generic bedpe line type 
+                # Check if call is a breakfinder call or a generic bedpe line type
                 if isinstance(call, BreakfinderCall):
                     if call.breakpointA.chr == chrX and call.breakpointB.chr == chrY:
                         posX = call.breakpointA.pos
@@ -415,11 +438,15 @@ def plot_hic_region_matrix(
                         continue
 
                 # If the breakpoint is within the bounds of the plot, plot it
-                if startTrueX <= posX <= endTrueX  and startTrueY <= posY <= endTrueY:
+                if startTrueX <= posX <= endTrueX and startTrueY <= posY <= endTrueY:
 
                     # Plot the whole submatrix of breakfinder call if start and end are different
                     # Alternatively, if a bedpe and start and end are different, then plot the rectangle
-                    if (show_submatrices or isinstance(call, BedpeLine)) and callStartX != callEndX and callStartY != callEndY:
+                    if (
+                        (show_submatrices or isinstance(call, BedpeLine))
+                        and callStartX != callEndX
+                        and callStartY != callEndY
+                    ):
                         # Plot rectangle
                         rect = Rectangle(
                             (callStartX, callStartY),
@@ -428,7 +455,7 @@ def plot_hic_region_matrix(
                             linewidth=1,
                             edgecolor=annotation_color,
                             facecolor="none",
-                            alpha=0.75,
+                            alpha=0.8,
                         )
                         ax.add_patch(rect)
 
@@ -437,7 +464,9 @@ def plot_hic_region_matrix(
 
                     # Plot the marker on the plot
                     # If a simple bedpe, then only plot a marker if the start and end are the same
-                    if isinstance(call, BreakfinderCall) or (callStartX == callEndX and callStartY == callEndY):
+                    if isinstance(call, BreakfinderCall) or (
+                        callStartX == callEndX and callStartY == callEndY
+                    ):
                         ax.plot(
                             posX,
                             posY,
@@ -447,8 +476,18 @@ def plot_hic_region_matrix(
                         )
 
                         if crosshairs:
-                            ax.axvline(posX, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1)
-                            ax.axhline(posY, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1)
+                            ax.axvline(
+                                posX,
+                                color=annotation_color,
+                                linestyle=(0, (1, 5)),
+                                linewidth=1,
+                            )
+                            ax.axhline(
+                                posY,
+                                color=annotation_color,
+                                linestyle=(0, (1, 5)),
+                                linewidth=1,
+                            )
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
@@ -484,14 +523,16 @@ def plot_hic_centered_matrix(
     startY = centerY - radius
 
     # Next get end points, and add a bin - 1 to the end to center the plot
-    endX = centerX + radius 
-    endY = centerY + radius 
+    endX = centerX + radius
+    endY = centerY + radius
 
     # Make the region objects
     regionX = Region(chrX, startX, endX)
     regionY = Region(chrY, startY, endY)
 
-    ax, (startTrueX, endTrueX), (startTrueY, endTrueY) = plot_hic_region_matrix(sample, regionX, regionY, resolution, **kwargs)
+    ax, (startTrueX, endTrueX), (startTrueY, endTrueY) = plot_hic_region_matrix(
+        sample, regionX, regionY, resolution, **kwargs
+    )
 
     return ax, (startTrueX, endTrueX), (startTrueY, endTrueY)
 
@@ -507,7 +548,7 @@ def plot_hic_chr_context(
     ax=None,
     cmap=REDMAP,
     tick_fontsize=10,
-    extra_bedpe: list[BedpeLine]=[],
+    extra_bedpe: list[BedpeLine] = [],
 ) -> plt.Axes:
     """Plots the Hi-C whole-chromosome context for a given sample.
 
@@ -578,7 +619,7 @@ def plot_hic_chr_context(
     vmax_large = np.sqrt(max_value) / 1.5
 
     # Plot the large matrix
-    ax.matshow(full_matrix, cmap=cmap, vmax=vmax_large)
+    ax.matshow(full_matrix, cmap=cmap, vmax=vmax_large, aspect="auto")
 
     # Add axis lines to separate the chromosomes
     ax.axhline(top_left.shape[0] - 0.5, color="gray", linewidth=1)
@@ -587,7 +628,7 @@ def plot_hic_chr_context(
     # Add chromosome tick labels
     ticks = [top_left.shape[1] // 2, top_left.shape[1] + top_right.shape[1] // 2]
     ax.set_xticks(ticks, [chrA, chrB], fontsize=tick_fontsize)
-    ax.set_yticks(ticks, [chrA, chrB], fontsize=tick_fontsize)
+    ax.set_yticks(ticks, [chrA, chrB], fontsize=tick_fontsize, rotation=90, va="center")
     ax.xaxis.set_ticks_position("bottom")
 
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
@@ -616,28 +657,18 @@ def plot_hic_chr_context(
                 # Get position of the breakfinder call as a fraction of the chroomsome, then multiply by matrix size and offset by 0.5
                 box_top = (
                     top_left.shape[0]
-                    + (
-                        (call_posB / CHROM_SIZES[chrB])
-                        * bottom_left.shape[0]
-                    )
+                    + ((call_posB / CHROM_SIZES[chrB]) * bottom_left.shape[0])
                     - 0.5
                 )
-                box_left = (
-                    call_posA / CHROM_SIZES[chrA] * top_left.shape[1] - 0.5
-                )
+                box_left = call_posA / CHROM_SIZES[chrA] * top_left.shape[1] - 0.5
             elif call_chrA == chrB and call_chrB == chrA:
 
                 box_top = (
                     top_left.shape[0]
-                    + (
-                        (call_chrA / CHROM_SIZES[chrA])
-                        * bottom_left.shape[0]
-                    )
+                    + ((call_chrA / CHROM_SIZES[chrA]) * bottom_left.shape[0])
                     - 0.5
                 )
-                box_left = (
-                    call_chrB / CHROM_SIZES[chrB] * top_left.shape[1] - 0.5
-                )
+                box_left = call_chrB / CHROM_SIZES[chrB] * top_left.shape[1] - 0.5
             else:
                 continue
 
@@ -881,7 +912,9 @@ def plot_gene_track(
     plot_line_width = 0.4
 
     # Get genes which intersect the center directly
-    direct_genes = GENE_ANNOTATIONS.genes_at_locus(contig=chr_unprefix(chr), position=center)
+    direct_genes = GENE_ANNOTATIONS.genes_at_locus(
+        contig=chr_unprefix(chr), position=center
+    )
     direct_genes_set = set([gene.gene_name for gene in direct_genes])
 
     for gene in genes:
@@ -1036,7 +1069,9 @@ def plot_coverage_track(
     if start < 0:
         norm_vector = np.pad(norm_vector, (-start // resolution, 0), "constant")
     if end > CHROM_SIZES[chr]:
-        norm_vector = np.pad(norm_vector, (0, (end - CHROM_SIZES[chr]) // resolution), "constant")
+        norm_vector = np.pad(
+            norm_vector, (0, (end - CHROM_SIZES[chr]) // resolution), "constant"
+        )
 
     positions = (np.arange(norm_vector.size) * resolution) + start
 
@@ -1065,6 +1100,7 @@ def plot_coverage_track(
             ha="left",
             va="top",
             transform=ax.transAxes,
+            color="gray",
             fontdict={"fontsize": label_fontsize},
             rotation=90,
         )
@@ -1076,8 +1112,10 @@ def plot_coverage_track(
             ha="left",
             va="top",
             transform=ax.transAxes,
+            color="gray",
             fontdict={"fontsize": label_fontsize},
         )
+
 
 def plot_bigwig_track(
     bw_handle: object,
@@ -1089,7 +1127,7 @@ def plot_bigwig_track(
     vertical=False,
     ax=None,
     fontsize=8,
-    label: str="",
+    label: str = "",
     color="blue",
 ) -> plt.Axes:
 
@@ -1098,12 +1136,19 @@ def plot_bigwig_track(
         pass
     else:
         chr = chr_unprefix(chr)
-    
+
     # Get the data from the bigwig file
     data = bw_handle.stats(chr, start, end, type="mean", nBins=num_bins, numpy=True)
 
     # TODO: Using an arbitrary region for normalization for now, but probably want to choose a different normalization region at some point
-    normalizer = bw_handle.stats("chr2", 20000000, 20000000+(end-start), type="mean", nBins=num_bins, numpy=True).max()
+    normalizer = bw_handle.stats(
+        "chr2",
+        20000000,
+        20000000 + (end - start),
+        type="mean",
+        nBins=num_bins,
+        numpy=True,
+    ).max()
 
     positions = np.linspace(start, end, num_bins)
 
@@ -1137,6 +1182,7 @@ def plot_bigwig_track(
             ha="left",
             va="top",
             transform=ax.transAxes,
+            color="gray",
             fontdict={"fontsize": fontsize},
             rotation=90,
         )
@@ -1148,9 +1194,9 @@ def plot_bigwig_track(
             ha="left",
             va="top",
             transform=ax.transAxes,
+            color="gray",
             fontdict={"fontsize": fontsize},
         )
-
 
 
 # -------------------------------------------------------------------------------
@@ -1173,7 +1219,7 @@ def plot_composite_double_whole_matrix(
 def plot_composite_context_and_zoom(
     sample: ArimaPipelineSample,
     call: BreakfinderCall,
-    figsize=(13.5, 7.3),
+    figsize=(13, 7.3),
     zoom_resolution=10000,
     zoom_radius=400000,
     gene_filter=None,
@@ -1181,27 +1227,63 @@ def plot_composite_context_and_zoom(
     title_fontsize=8,
     title_ha="left",
     gene_fontsize=7,
-    extra_bedpe: list[BedpeLine]=[],
-    extra_bigwig_handles: list[tuple[str, object]]=[],
-    **kwargs
+    extra_bedpe: list[BedpeLine] = [],
+    coverage_track=True,
+    hide_track_axes=True,
+    extra_bigwig_handles: list[tuple[str, object]] = [],
+    **kwargs,
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
 
     # Get figure and separate out axes
     fig = plt.figure(figsize=figsize, constrained_layout=True)
+
+    # Calculate the number of rows and columns
+    num_bigwig_tracks = len(extra_bigwig_handles)
+    sizes_bigwig = [0.5] * num_bigwig_tracks
+    num_coverage_tracks = 1 if coverage_track else 0
+    sizes_coverage = [0.5] * num_coverage_tracks
+
+    num_rows = 2 + num_coverage_tracks + num_bigwig_tracks
+    num_cols = 3 + num_coverage_tracks + num_bigwig_tracks
+    height_ratios = sizes_coverage + sizes_bigwig + [1, 8]
+    width_ratios = [sum(height_ratios)] + sizes_coverage + sizes_bigwig + [1, 8]
+
     spec = GridSpec(
-        ncols=4,
-        nrows=3,
+        ncols=num_cols,
+        nrows=num_rows,
         figure=fig,
-        height_ratios=[0.5, 1, 8],
-        width_ratios=[10, 0.5, 1, 8],
+        height_ratios=height_ratios,
+        width_ratios=width_ratios,
+        wspace=0,
+        hspace=0,
     )
+
+    # Get axis handles
     ax_large = fig.add_subplot(spec[:, 0])
-    ax_toptop = fig.add_subplot(spec[0, 3])
-    ax_top = fig.add_subplot(spec[1, 3])
-    ax_leftleft = fig.add_subplot(spec[2, 1])
-    ax_left = fig.add_subplot(spec[2, 2])
-    ax_center = fig.add_subplot(spec[2, 3])
+
+    ax_zoom_row = 1 + num_coverage_tracks + num_bigwig_tracks
+    ax_zoom_col = 2 + num_coverage_tracks + num_bigwig_tracks
+    ax_zoom = fig.add_subplot(spec[ax_zoom_row, ax_zoom_col])
+
+    ax_bigwig_horizontal_start = 1 if coverage_track else 0
+    ax_bigwig_horizontal_handles = [
+        fig.add_subplot(spec[start, ax_zoom_col])
+        for start in range(
+            ax_bigwig_horizontal_start, ax_bigwig_horizontal_start + num_bigwig_tracks
+        )
+    ]
+
+    ax_bigwig_vertical_start = 2 if coverage_track else 1
+    ax_bigwig_vertical_handles = [
+        fig.add_subplot(spec[ax_zoom_row, start])
+        for start in range(
+            ax_bigwig_vertical_start, ax_bigwig_vertical_start + num_bigwig_tracks
+        )
+    ]
+
+    ax_genes_top = fig.add_subplot(spec[ax_zoom_row - 1, ax_zoom_col])
+    ax_genes_left = fig.add_subplot(spec[ax_zoom_row, ax_zoom_col - 1])
 
     # Unpack breakfinder call
     if isinstance(call, BreakfinderCall):
@@ -1220,9 +1302,9 @@ def plot_composite_context_and_zoom(
         posB,
         resolution=zoom_resolution,
         radius=zoom_radius,
-        ax=ax_center,
+        ax=ax_zoom,
         extra_bedpe=extra_bedpe,
-        **kwargs
+        **kwargs,
     )
 
     # Choose a chromosome context resolution
@@ -1251,24 +1333,82 @@ def plot_composite_context_and_zoom(
     )
 
     # Plot coverage tracks
-    plot_coverage_track(sample, chrA, xmin, xmax, zoom_resolution, ax=ax_toptop)
-    plot_coverage_track(
-        sample, chrB, ymin, ymax, zoom_resolution, vertical=True, ax=ax_leftleft
-    )
+    if coverage_track:
+        ax_coverage_top = fig.add_subplot(spec[0, ax_zoom_col])
+        ax_coverage_bottom = fig.add_subplot(spec[ax_zoom_row, 1])
+        plot_coverage_track(
+            sample,
+            chrA,
+            xmin,
+            xmax,
+            zoom_resolution,
+            ax=ax_coverage_top,
+            hide_axes=hide_track_axes,
+            label_fontsize=7,
+        )
+        plot_coverage_track(
+            sample,
+            chrB,
+            ymin,
+            ymax,
+            zoom_resolution,
+            vertical=True,
+            ax=ax_coverage_bottom,
+            hide_axes=hide_track_axes,
+            label_fontsize=7,
+        )
 
     # Plot gene tracks
     plot_gene_track(
-        chrA, xmin, xmax, ax=ax_top, fontsize=gene_fontsize, gene_filter=gene_filter
+        chrA,
+        xmin,
+        xmax,
+        ax=ax_genes_top,
+        fontsize=gene_fontsize,
+        gene_filter=gene_filter,
+        hide_axes=hide_track_axes,
     )
     plot_gene_track(
         chrB,
         ymin,
         ymax,
-        ax=ax_left,
+        ax=ax_genes_left,
         vertical=True,
         fontsize=gene_fontsize,
         gene_filter=gene_filter,
+        hide_axes=hide_track_axes,
     )
+
+    # For each bigwig track, plot
+    for (i, (label, bw_handle)), ax_horizontal, ax_vertical, color in zip(
+        enumerate(extra_bigwig_handles),
+        ax_bigwig_horizontal_handles,
+        ax_bigwig_vertical_handles,
+        BIGWIG_COLORS,
+    ):
+        plot_bigwig_track(
+            bw_handle,
+            chrA,
+            xmin,
+            xmax,
+            label=label,
+            ax=ax_horizontal,
+            hide_axes=hide_track_axes,
+            color=color,
+            fontsize=7,
+        )
+        plot_bigwig_track(
+            bw_handle,
+            chrB,
+            ymin,
+            ymax,
+            label=label,
+            ax=ax_vertical,
+            vertical=True,
+            hide_axes=hide_track_axes,
+            color=color,
+            fontsize=7,
+        )
 
     # If no specified title, then make metadata title
     if title is None:

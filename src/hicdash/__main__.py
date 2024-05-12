@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--hic", type=str, help="Filepath to Hi-C .hic file from Arima-SV Pipeline.")
     parser.add_argument("--breaks", type=str, help="Filepath to hic_breakfinder breaks.bedpe from Arima-SV Pipeline for regional zooms.", default=None)
     parser.add_argument("--bedpe", type=str, help="Filepath(s) (comma-delimited) to extra .bedpe files to be annotated.", default=None)
+    parser.add_argument("--bigwig", type=str, help="Filepath(s) (comma-delimited) to extra .bigwig files to be annotated.", default=None)
     parser.add_argument("--control", type=str, help="Filepath to control Hi-C file for visual comparison.", default=None)
     parser.add_argument("--output", type=str, help="Filepath to save the report into (include .html extension).")
 
@@ -27,6 +28,7 @@ def main():
         hic_filepath=args.hic,
         breakfinder_filepath=args.breaks,
         extra_bedpe=args.bedpe,
+        extra_bigwig=args.bigwig,
         output_filepath=args.output,
         control_filepath=args.control,
     )

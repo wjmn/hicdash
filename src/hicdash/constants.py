@@ -126,3 +126,12 @@ BEDPE_COLORS = [
     "teal",
     "brown",
 ]
+
+BIGWIG_COLORS = [
+    "blue",
+    "dodgerblue", 
+    "teal", 
+    "green",
+    "lime",
+    "yellow",
+]
