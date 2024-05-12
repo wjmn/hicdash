@@ -185,7 +185,7 @@ def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall, control: 
     # Get breakfinder submatrix as string
     startA, endA = call.breakpointA.start, call.breakpointA.end
     startB, endB = call.breakpointB.start, call.breakpointB.end
-    submatrix_string = f"{chrA}:{startA}-{endA} × {chrB}:{startB}-{endB}"
+    submatrix_string = f"{chrA}:{startA}-{endA} x {chrB}:{startB}-{endB}"
 
     # Geneerate direct and nearby genes
     genesetA = set(genesA)
