@@ -2,12 +2,14 @@
 """
 
 import pandas as pd
+import numpy as np
 from hicstraw import HiCFile
-from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES
+from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES, BREAKFINDER_COLUMNS, BEDPE_COLUMNS
 from hicdash.definitions import (
     to_strand,
     QCData,
     BreakfinderCall,
+    BedpeLine,
     ArimaPipelineSample,
     Pairing,
     VariantCategory,
@@ -60,22 +62,9 @@ def read_qc(qc_filepath: str) -> QCData:
     )
 
 
-# Column names for the hic_breakfinder output bedpe file.
-BREAKFINDER_COLUMNS = [
-    "chr1",
-    "x1",
-    "x2",
-    "chr2",
-    "y1",
-    "y2",
-    "strand1",
-    "strand2",
-    "resolution",
-    "-logP",
-]
 
 
-def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall]:
+def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall] | list[BedpeLine]:
     """Reads hic_breakfinder output file and returns a list of BreakfinderCall objects.
 
     This function is designed to work on the Arima-SV Pipeline breaks.bedpe file,
@@ -91,68 +80,125 @@ def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall]:
     df = pd.read_csv(
         breakfinder_filepath, sep="\t", names=BREAKFINDER_COLUMNS, skiprows=1
     )
+    # Check if strand column is a string; if not, then default to bedpe
+    if len(df) > 0 and not isinstance(df.iloc[0,6], str):
+        is_breakfinder = False
+        df = pd.read_csv(
+            breakfinder_filepath, sep="\t", names=BEDPE_COLUMNS, skiprows=0
+        )
+    else:
+        is_breakfinder = True
 
     # Create an empty list, which will be populated with BreakfinderCall objects
     calls = []
 
     # Iterate through all breakfinder calls (as rows in the dataframe)
-    for _, row in df.iterrows():
+    if is_breakfinder:
+        for _, row in df.iterrows():
 
-        # Get data out of the row for processing and make breakpoint objects
-        chr1 = chr_prefix(row["chr1"])
-        start1 = row["x1"]
-        end1 = row["x2"]
-        strand1 = to_strand(row["strand1"])
-        pos1 = end1 if strand1 == Strand.POS else start1
-        breakpointA = Breakpoint(chr1, start1, end1, pos1, strand1)
+            # Get data out of the row for processing and make breakpoint objects
+            chr1 = chr_prefix(row["chr1"])
+            start1 = row["x1"]
+            end1 = row["x2"]
+            strand1 = to_strand(row["strand1"])
+            pos1 = end1 if strand1 == Strand.POS else start1
+            breakpointA = Breakpoint(chr1, start1, end1, pos1, strand1)
 
-        chr2 = chr_prefix(row["chr2"])
-        start2 = row["y1"]
-        end2 = row["y2"]
-        strand2 = to_strand(row["strand2"])
-        pos2 = end2 if strand2 == Strand.POS else start2
-        breakpointB = Breakpoint(chr2, start2, end2, pos2, strand2)
+            chr2 = chr_prefix(row["chr2"])
+            start2 = row["y1"]
+            end2 = row["y2"]
+            strand2 = to_strand(row["strand2"])
+            pos2 = end2 if strand2 == Strand.POS else start2
+            breakpointB = Breakpoint(chr2, start2, end2, pos2, strand2)
 
-        resolution = resolution_to_int(row["resolution"])
-        neg_log_pval = row["-logP"]
+            resolution = resolution_to_int(row["resolution"])
+            neg_log_pval = row["-logP"]
 
-        # Ensure breakpointA has the chromosome with the lower index
-        # If it's got a greater index, then swap breakpoints
-        if CHROM_INDICES[breakpointA.chr] > CHROM_INDICES[breakpointB.chr]:
-            breakpointA, breakpointB = breakpointB, breakpointA
+            # Ensure breakpointA has the chromosome with the lower index
+            # If it's got a greater index, then swap breakpoints
+            if CHROM_INDICES[breakpointA.chr] > CHROM_INDICES[breakpointB.chr]:
+                breakpointA, breakpointB = breakpointB, breakpointA
 
-        # Assign the call a variant category
-        if breakpointA.chr != breakpointB.chr:
-            category = VariantCategory.TRANSLOCATION
-        else:
-            if breakpointA.strand == Strand.POS and breakpointB.strand == Strand.NEG:
-                category = VariantCategory.DELETION
-            elif breakpointA.strand == Strand.NEG and breakpointB.strand == Strand.POS:
-                category = VariantCategory.DUPLICATION
+            # Assign the call a variant category
+            if breakpointA.chr != breakpointB.chr:
+                category = VariantCategory.TRANSLOCATION
             else:
-                category = VariantCategory.INVERSION_OR_OTHER
+                if breakpointA.strand == Strand.POS and breakpointB.strand == Strand.NEG:
+                    category = VariantCategory.DELETION
+                elif breakpointA.strand == Strand.NEG and breakpointB.strand == Strand.POS:
+                    category = VariantCategory.DUPLICATION
+                else:
+                    category = VariantCategory.INVERSION_OR_OTHER
 
-        # Assign the call a chromosomal pairing
-        pairing = Pairing.INTRA if breakpointA.chr == breakpointB.chr else Pairing.INTER
+            # Assign the call a chromosomal pairing
+            pairing = Pairing.INTRA if breakpointA.chr == breakpointB.chr else Pairing.INTER
 
-        # Create a BreakfinderCall object
-        call = BreakfinderCall(
-            breakpointA=breakpointA,
-            breakpointB=breakpointB,
-            resolution=resolution,
-            neg_log_pval=neg_log_pval,
-            pairing=pairing,
-            category=category,
-        )
+            # Create a BreakfinderCall object
+            call = BreakfinderCall(
+                breakpointA=breakpointA,
+                breakpointB=breakpointB,
+                resolution=resolution,
+                neg_log_pval=neg_log_pval,
+                pairing=pairing,
+                category=category,
+            )
 
-        # Add to the cumulative list of calls
-        calls.append(call)
+            # Add to the cumulative list of calls
+            calls.append(call)
+
+        # Sort breakfinder calls by chrA region 
+        calls.sort(key=lambda x: CHROM_INDICES[x.breakpointA.chr] * 1e11 + CHROM_INDICES[x.breakpointB.chr] * 1e9 + x.breakpointA.pos)
+        return calls
+
+    else:
+        for _, row in df.iterrows():
+            chrA = chr_prefix(row["chr1"])
+            startA = row["start1"]
+            endA = row["end1"]
+            chrB = chr_prefix(row["chr2"])
+            startB = row["start2"]
+            endB = row["end2"]
+
+            if CHROM_INDICES[chrA] > CHROM_INDICES[chrB]:
+                chrA, chrB = chrB, chrA
+                startA, startB = startB, startA
+                endA, endB = endB, endA
+
+            line = BedpeLine(chrA, startA, endA, chrB, startB, endB)
+
+            calls.append(line)
+
+        # Sort breakfinder calls by chrA region 
+        calls.sort(key=lambda x: CHROM_INDICES[x.chrA] * 1e11 + CHROM_INDICES[x.chrB] * 1e9 + x.startA)
+        return calls
+
+def read_bedpe(bedpe_filepath: str) -> list[BedpeLine]:
+    """Read a bedpe file and return a list of BedpeLine objects."""
+    df = pd.read_csv(
+        bedpe_filepath, sep="\t", names=BEDPE_COLUMNS, skiprows=0, usecols=[0, 1, 2, 3, 4, 5]
+    )
+    lines = []
+    for _, row in df.iterrows():
+        chrA = chr_prefix(row["chr1"])
+        startA = row["start1"]
+        endA = row["end1"]
+        chrB = chr_prefix(row["chr2"])
+        startB = row["start2"]
+        endB = row["end2"]
+
+        if CHROM_INDICES[chrA] > CHROM_INDICES[chrB]:
+            chrA, chrB = chrB, chrA
+            startA, startB = startB, startA
+            endA, endB = endB, endA
+
+        line = BedpeLine(chrA, startA, endA, chrB, startB, endB)
+
+        lines.append(line)
 
     # Sort breakfinder calls by chrA region 
-    calls.sort(key=lambda x: CHROM_INDICES[x.breakpointA.chr] * 1e11 + CHROM_INDICES[x.breakpointB.chr] * 1e9 + x.breakpointA.pos)
-
-    return calls
-
+    lines.sort(key=lambda x: CHROM_INDICES[x.chrA] * 1e11 + CHROM_INDICES[x.chrB] * 1e9 + x.startA)
+    return lines
+ 
 
 def read_hic(hic_file: str) -> HiCFile:
     """Read Hi-C file and return a HiCFile object.

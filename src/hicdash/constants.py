@@ -78,3 +78,51 @@ CHROM_SIZES = {
 
 # Ensembl gene annotations
 GENE_ANNOTATIONS = pyensembl.EnsemblRelease(110, "human")
+
+
+# -------------------------------------------------------------------------------
+# COLUMN NAMES
+# -------------------------------------------------------------------------------
+
+# Column names for the hic_breakfinder output bedpe file.
+BREAKFINDER_COLUMNS = [
+    "chr1",
+    "x1",
+    "x2",
+    "chr2",
+    "y1",
+    "y2",
+    "strand1",
+    "strand2",
+    "resolution",
+    "-logP",
+]
+
+
+BEDPE_COLUMNS = [
+    "chr1",
+    "start1",
+    "end1",
+    "chr2",
+    "start2",
+    "end2",
+]
+
+# -------------------------------------------------------------------------------
+# ANNOTATION COLOURS
+# -------------------------------------------------------------------------------
+
+BEDPE_COLORS = [
+    "blue",
+    "green",
+    "magenta",
+    "cyan",
+    "yellow",
+    "orange",
+    "purple",
+    "lime",
+    "indigo",
+    "pink", 
+    "teal",
+    "brown",
+]

@@ -9,11 +9,12 @@ from numpy.typing import NDArray
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from hicstraw import HiCFile
-from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES, GENE_ANNOTATIONS
+from hicdash.constants import CHROMS, CHROM_INDICES, CHROM_SIZES, GENE_ANNOTATIONS, BEDPE_COLORS
 from hicdash.definitions import (
     to_strand,
     QCData,
     BreakfinderCall,
+    BedpeLine,
     ArimaPipelineSample,
     Pairing,
     VariantCategory,
@@ -243,7 +244,7 @@ def plot_hic_region_matrix(
     minimal=False,
     show_breakfinder_calls=True,
     breakfinder_marker="+",
-    breakfinder_color="blue",
+    breakfinder_color="black",
     normalization="NONE",
     vmax=None,
     cmap=REDMAP,
@@ -253,6 +254,8 @@ def plot_hic_region_matrix(
     tick_fontsize=9,
     grid_lines=False,
     crosshairs=False,
+    show_submatrices=False,
+    extra_bedpe: list[BedpeLine]=[],
 ) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
     """Plots a specified Hi-C region.
 
@@ -367,56 +370,84 @@ def plot_hic_region_matrix(
     # Plot annotations
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
 
-        # Select only breakpoints that involve these two chromosomes
-        for call in sample.breakfinder_calls:
-            if call.breakpointA.chr == chrX and call.breakpointB.chr == chrY:
-                posX = call.breakpointA.pos
-                posY = call.breakpointB.pos
-            elif call.breakpointA.chr == chrY and call.breakpointB.chr == chrX:
-                posX = call.breakpointB.pos
-                posY = call.breakpointA.pos
-            else:
-                continue
+        # Iterate through annotation sets: (annotations, color)
+        for (annotation_set, annotation_color) in [(sample.breakfinder_calls, breakfinder_color)] + list(zip(extra_bedpe, BEDPE_COLORS)):
 
-            # If the breakpoint is within the bounds of the plot, plot it
-            if startTrueX <= posX <= endTrueX  and startTrueY <= posY <= endTrueY:
+            # Select only breakpoints that involve these two chromosomes
+            for call in annotation_set:
 
-                # Plot the whole ubmatrix of breakfinder call if start and end are different
-                if call.breakpointA.start != call.breakpointA.end and call.breakpointB.start != call.breakpointB.end:
-                    callStartX = call.breakpointA.start
-                    callEndX = call.breakpointA.end
-                    callStartY = call.breakpointB.start
-                    callEndY = call.breakpointB.end
-                    # Plot rectangle
-                    rect = Rectangle(
-                        (callStartX, callStartY),
-                        callEndX - callStartX,
-                        callEndY - callStartY,
-                        linewidth=1,
-                        edgecolor=breakfinder_color,
-                        facecolor="none",
-                        alpha=0.5,
-                    )
-                    ax.add_patch(rect)
+                # Check if call is a breakfinder call or a generic bedpe line type 
+                if isinstance(call, BreakfinderCall):
+                    if call.breakpointA.chr == chrX and call.breakpointB.chr == chrY:
+                        posX = call.breakpointA.pos
+                        posY = call.breakpointB.pos
+                        callStartX = call.breakpointA.start
+                        callEndX = call.breakpointA.end
+                        callStartY = call.breakpointB.start
+                        callEndY = call.breakpointB.end
+                    elif call.breakpointA.chr == chrY and call.breakpointB.chr == chrX:
+                        posX = call.breakpointB.pos
+                        posY = call.breakpointA.pos
+                        callStartX = call.breakpointB.start
+                        callEndX = call.breakpointB.end
+                        callStartY = call.breakpointA.start
+                        callEndY = call.breakpointA.end
+                    else:
+                        continue
+                elif isinstance(call, BedpeLine):
+                    # Default to start coordinate if a simple bedpe line
+                    if call.chrA == chrX and call.chrB == chrY:
+                        posX = call.startA
+                        posY = call.startB
+                        callStartX = call.startA
+                        callEndX = call.endA
+                        callStartY = call.startB
+                        callEndY = call.endB
+                    elif call.chrA == chrY and call.chrB == chrX:
+                        posX = call.startB
+                        posY = call.startA
+                        callStartX = call.startB
+                        callEndX = call.endB
+                        callStartY = call.startA
+                        callEndY = call.endA
+                    else:
+                        continue
 
-                # Normalize the marker size depending on resolution
-                # TODO: Make this sizing a bit more consistent.
-                #size = max(10, 40 * 100000 / ((endY - startY) // 2))
-                size = 10
+                # If the breakpoint is within the bounds of the plot, plot it
+                if startTrueX <= posX <= endTrueX  and startTrueY <= posY <= endTrueY:
 
-                # Plot the marker on the plot
-                ax.plot(
-                    posX,
-                    posY,
-                    marker=breakfinder_marker,
-                    color=breakfinder_color,
-                    markersize=size,
-                )
+                    # Plot the whole submatrix of breakfinder call if start and end are different
+                    # Alternatively, if a bedpe and start and end are different, then plot the rectangle
+                    if (show_submatrices or isinstance(call, BedpeLine)) and callStartX != callEndX and callStartY != callEndY:
+                        # Plot rectangle
+                        rect = Rectangle(
+                            (callStartX, callStartY),
+                            callEndX - callStartX,
+                            callEndY - callStartY,
+                            linewidth=1,
+                            edgecolor=annotation_color,
+                            facecolor="none",
+                            alpha=0.75,
+                        )
+                        ax.add_patch(rect)
 
-                # Add crosshairs if specified
-                if crosshairs:
-                    ax.axvline(posX, color=breakfinder_color, linestyle=(0, (1, 5)), linewidth=1)
-                    ax.axhline(posY, color=breakfinder_color, linestyle=(0, (1, 5)), linewidth=1)
+                    # Marker size
+                    size = 18
+
+                    # Plot the marker on the plot
+                    # If a simple bedpe, then only plot a marker if the start and end are the same
+                    if isinstance(call, BreakfinderCall) or (callStartX == callEndX and callStartY == callEndY):
+                        ax.plot(
+                            posX,
+                            posY,
+                            marker=breakfinder_marker,
+                            color=annotation_color,
+                            markersize=size,
+                        )
+
+                        if crosshairs:
+                            ax.axvline(posX, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1)
+                            ax.axhline(posY, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1)
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
@@ -475,6 +506,7 @@ def plot_hic_chr_context(
     ax=None,
     cmap=REDMAP,
     tick_fontsize=10,
+    extra_bedpe: list[BedpeLine]=[],
 ) -> plt.Axes:
     """Plots the Hi-C whole-chromosome context for a given sample.
 
@@ -568,30 +600,42 @@ def plot_hic_chr_context(
 
         # Choose only calls that involve these two chromosomes
         for call in sample.breakfinder_calls:
-            if call.breakpointA.chr == chrA and call.breakpointB.chr == chrB:
+
+            if isinstance(call, BreakfinderCall):
+                call_chrA = call.breakpointA.chr
+                call_chrB = call.breakpointB.chr
+                call_posA = call.breakpointA.pos
+                call_posB = call.breakpointB.pos
+            elif isinstance(call, BedpeLine):
+                call_chrA = call.chrA
+                call_chrB = call.chrB
+                call_posA = (call.startA + call.endA) // 2
+                call_posB = (call.startB + call.endB) // 2
+            if call_chrA == chrA and call_chrB == chrB:
                 # Get position of the breakfinder call as a fraction of the chroomsome, then multiply by matrix size and offset by 0.5
                 box_top = (
                     top_left.shape[0]
                     + (
-                        (call.breakpointB.pos / CHROM_SIZES[chrB])
+                        (call_posB / CHROM_SIZES[chrB])
                         * bottom_left.shape[0]
                     )
                     - 0.5
                 )
                 box_left = (
-                    call.breakpointA.pos / CHROM_SIZES[chrA] * top_left.shape[1] - 0.5
+                    call_posA / CHROM_SIZES[chrA] * top_left.shape[1] - 0.5
                 )
-            elif call.breakpointA.chr == chrB and call.breakpointB.chr == chrA:
+            elif call_chrA == chrB and call_chrB == chrA:
+
                 box_top = (
                     top_left.shape[0]
                     + (
-                        (call.breakpointA.pos / CHROM_SIZES[chrA])
+                        (call_chrA / CHROM_SIZES[chrA])
                         * bottom_left.shape[0]
                     )
                     - 0.5
                 )
                 box_left = (
-                    call.breakpointB.pos / CHROM_SIZES[chrB] * top_left.shape[1] - 0.5
+                    call_chrB / CHROM_SIZES[chrB] * top_left.shape[1] - 0.5
                 )
             else:
                 continue
@@ -702,19 +746,30 @@ def plot_full_matrix(
 
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
         for call in sample.breakfinder_calls:
+            if isinstance(call, BreakfinderCall):
+                pairing = call.pairing
+                chrY = call.breakpointA.chr
+                chrX = call.breakpointB.chr
+                posA = call.breakpointA.pos
+                posB = call.breakpointB.pos
+            elif isinstance(call, BedpeLine):
+                if call.chrA == call.chrB:
+                    pairing = Pairing.INTRA
+                else:
+                    pairing = Pairing.INTER
+                chrY = call.chrA
+                chrX = call.chrB
+                posA = (call.startA + call.endA) // 2
+                posB = (call.startB + call.endB) // 2
             # Show only inter-chromosomal calls for now
-            if call.pairing == Pairing.INTER:
+            if pairing == Pairing.INTER:
 
                 # Calculate position on full-matrix as a fraction of the chromosome
-                chrY = call.breakpointA.chr
                 idxA = CHROM_INDICES[chrY]
-                posA = call.breakpointA.pos
                 pctA = posA / CHROM_SIZES[chrY]
                 coordA = sum(new_sizes[:idxA]) + (pctA * new_sizes[idxA])
 
-                chrX = call.breakpointB.chr
                 idxB = CHROM_INDICES[chrX]
-                posB = call.breakpointB.pos
                 pctB = posB / CHROM_SIZES[chrX]
                 coordB = sum(new_sizes[:idxB]) + (pctB * new_sizes[idxB])
 
@@ -1052,6 +1107,8 @@ def plot_composite_context_and_zoom(
     title_fontsize=8,
     title_ha="left",
     gene_fontsize=7,
+    extra_bedpe: list[BedpeLine]=[],
+    **kwargs
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
 
@@ -1072,8 +1129,12 @@ def plot_composite_context_and_zoom(
     ax_center = fig.add_subplot(spec[2, 3])
 
     # Unpack breakfinder call
-    chrA, posA = call.breakpointA.chr, call.breakpointA.pos
-    chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    if isinstance(call, BreakfinderCall):
+        chrA, posA = call.breakpointA.chr, call.breakpointA.pos
+        chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    else:
+        chrA, posA = call.chrA, (call.startA + call.endA) // 2
+        chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Plot zoomed hic matrix first to get axis bounds
     _, (xmin, xmax), (ymin, ymax) = plot_hic_centered_matrix(
@@ -1085,6 +1146,8 @@ def plot_composite_context_and_zoom(
         resolution=zoom_resolution,
         radius=zoom_radius,
         ax=ax_center,
+        extra_bedpe=extra_bedpe,
+        **kwargs
     )
 
     # Choose a chromosome context resolution
@@ -1109,6 +1172,7 @@ def plot_composite_context_and_zoom(
         show_breakfinder_calls=True,
         region_highlight=((xmin, xmax), (ymin, ymax)),
         ax=ax_large,
+        extra_bedpe=extra_bedpe,
     )
 
     # Plot coverage tracks
@@ -1145,7 +1209,7 @@ def plot_composite_context_and_zoom(
 def plot_composite_compare_two(
     sample1: ArimaPipelineSample,
     sample2: ArimaPipelineSample,
-    call: BreakfinderCall,
+    call: BreakfinderCall | BedpeLine,
     figsize=(13.5, 7.3),
     resolution=50000,
     radius=3000000,
@@ -1178,8 +1242,12 @@ def plot_composite_compare_two(
     ax2_center = fig.add_subplot(spec[1, 4])
 
     # Unpack breakfinder call
-    chrA, posA = call.breakpointA.chr, call.breakpointA.pos
-    chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    if isinstance(call, BreakfinderCall):
+        chrA, posA = call.breakpointA.chr, call.breakpointA.pos
+        chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    elif isinstance(call, BedpeLine):
+        chrA, posA = call.chrA, (call.startA + call.endA) // 2
+        chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Plot zoomed hic matrices in each center plot
     _, (xmin1, xmax1), (ymin1, ymax1) = plot_hic_centered_matrix(

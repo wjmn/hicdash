@@ -4,27 +4,32 @@ Most of this is messy HTML templating...to review ongoing.
 
 """
 
-from hicdash.constants import GENE_ANNOTATIONS
+from hicdash.constants import GENE_ANNOTATIONS, BEDPE_COLORS
 from hicdash.utilities import chr_unprefix
-from hicdash.definitions import BreakfinderCall, Strand, ArimaPipelineSample
+from hicdash.definitions import BreakfinderCall, Strand, ArimaPipelineSample, BedpeLine
 from hicdash.plotters import plot_composite_double_whole_matrix, plot_composite_compare_two, plot_composite_context_and_zoom, plot_qc
-from hicdash.readers import read_sample
+from hicdash.readers import read_sample, read_bedpe
 from pathlib import Path
 import matplotlib.pyplot as plt
 import base64
 import io 
 import datetime
+import os
 
 #-------------------------------------------------------------------------------
 # EXTRA UTILITIES
 #-------------------------------------------------------------------------------
 
-def get_genes_at_call(call: BreakfinderCall) -> tuple[list[str], list[str]]:
+def get_genes_at_call(call: BreakfinderCall | BedpeLine) -> tuple[list[str], list[str]]:
     """Get a list of genes directly at a given breakfinder call (as (genesA, genesB))"""
     
     # Unpack breakfinder call
-    chrA, posA = call.breakpointA.chr, call.breakpointA.pos
-    chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    if isinstance(call, BreakfinderCall):
+        chrA, posA = call.breakpointA.chr, call.breakpointA.pos
+        chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    elif isinstance(call, BedpeLine):
+        chrA, posA = call.chrA, (call.startA + call.endA) // 2
+        chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Get all non-empty genes at call
     non_empty = lambda x: x.gene_name != ""
@@ -34,31 +39,41 @@ def get_genes_at_call(call: BreakfinderCall) -> tuple[list[str], list[str]]:
     return ([g.gene_name for g in genesA], [g.gene_name for g in genesB])
 
 
-def get_genes_around_call(call: BreakfinderCall, width=300000, buffer=25000, protein_coding=True):
+def get_genes_around_call(call: BreakfinderCall | BedpeLine, width=300000, buffer=25000, protein_coding=True):
     """Gets a list of genes around a breakpoint (based on strandness). 
 
     Looks in direction of strandness for WIDTH bp and in opposite direction of strandness for BUFFER bp.
     """
 
     # Unpack breakfinder call
-    chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
-    chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
+    if isinstance(call, BreakfinderCall):
+        chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
+        chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
+
+        if strandA == Strand.POS: 
+            startA = posA - width
+            endA = posA + buffer
+        else:
+            startA = posA - buffer
+            endA = posA + width
+
+        if strandB == Strand.POS: 
+            startB = posB - width
+            endB = posB + buffer
+        else: 
+            startB = posB - buffer
+            endB = posB + width
+
+    elif isinstance(call, BedpeLine):
+        chrA, posA = call.chrA, (call.startA + call.endA) // 2
+        chrB, posB = call.chrB, (call.startB + call.endB) // 2
+
+        startA = posA - width // 2
+        endA = posA + width // 2
+        startB = posB - width // 2
+        endB = posB + width // 2
 
     # Get start and end ranges based on strandness
-    if strandA == Strand.POS: 
-        startA = posA - width
-        endA = posA + buffer
-    else:
-        startA = posA - buffer
-        endA = posA + width
-
-    if strandB == Strand.POS: 
-        startB = posB - width
-        endB = posB + buffer
-    else: 
-        startB = posB - buffer
-        endB = posB + width
-
     non_empty = lambda x: x.gene_name != ""
     genesA = filter(non_empty, GENE_ANNOTATIONS.genes_at_locus(contig=chr_unprefix(chrA), position=startA, end=endA))
     genesB = filter(non_empty, GENE_ANNOTATIONS.genes_at_locus(contig=chr_unprefix(chrB), position=startB, end=endB))
@@ -73,28 +88,34 @@ def get_genes_around_call(call: BreakfinderCall, width=300000, buffer=25000, pro
 
     return ([g.gene_name for g in genesA], [g.gene_name for g in genesB])
 
-def call_to_string(call: BreakfinderCall) -> str:
+def call_to_string(call: BreakfinderCall | BedpeLine) -> str:
     """Convert a breakfinder call to a string representation"""
 
     # Unpack call
-    chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
-    chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
+    if isinstance(call, BreakfinderCall):
+        chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
+        chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
 
-    # Convert to string
-    return f"{chrA}:{posA}-{chrB}:{posB} ({strandA.value}{strandB.value})"
+        # Convert to string
+        return f"{chrA}:{posA};{chrB}:{posB} ({strandA.value}{strandB.value})"
+    elif isinstance(call, BedpeLine):
+        return f"{call.chrA}:{call.startA};{call.chrB}:{call.startB}"
 
 def call_to_alphanumeric_string(call: BreakfinderCall) -> str:
     """Convert a breakfinder call to an alphanumeric string representation"""
 
     # Unpack call
-    chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
-    chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
+    if isinstance(call, BreakfinderCall):
+        chrA, posA, strandA = call.breakpointA.chr, call.breakpointA.pos, call.breakpointA.strand
+        chrB, posB, strandB = call.breakpointB.chr, call.breakpointB.pos, call.breakpointB.strand
 
-    strandAstr = "P" if strandA == Strand.POS else "N"
-    strandBstr = "P" if strandB == Strand.POS else "N"
+        strandAstr = "P" if strandA == Strand.POS else "N"
+        strandBstr = "P" if strandB == Strand.POS else "N"
 
-    # Convert to string
-    return f"{chrA}-{posA}-{chrB}-{posB}-{strandAstr}{strandBstr}"
+        # Convert to string
+        return f"{chrA}-{posA}-{chrB}-{posB}-{strandAstr}{strandBstr}"
+    elif isinstance(call, BedpeLine):
+        return f"{call.chrA}-{call.startA}-{call.chrB}-{call.startB}"
 
 def fig_to_base64_and_close(fig: plt.Figure) -> str:
     """Converts a matplotlib figure to a base64 string"""
@@ -138,7 +159,7 @@ def make_html_gene(gene: str, direct=False) -> str:
         direct=direct,
     )
 
-def make_html_comparison_plot(sample: ArimaPipelineSample, control: None | ArimaPipelineSample, call: BreakfinderCall) -> str:
+def make_html_comparison_plot(sample: ArimaPipelineSample, control: None | ArimaPipelineSample, call: BreakfinderCall | BedpeLine) -> str:
     """Generate HTML for a comparison plot entry in the report"""
 
     # Generate comparison plot
@@ -167,14 +188,28 @@ def make_html_qc_plot(sample: ArimaPipelineSample) -> str:
             qc_base64=qc_base64,
         )
 
-def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall, control: ArimaPipelineSample | None=None) -> str:
+def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall | BedpeLine, control: ArimaPipelineSample | None=None, extra_bedpe_data: list[BedpeLine]=[]) -> str:
     """Generate HTML for a call entry in the report"""
 
     print(f"- Generating HTML for breakfinder call: {call_to_string(call)}")
 
     # Unpack call
-    chrA, posA = call.breakpointA.chr, call.breakpointA.pos
-    chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+    if isinstance(call, BreakfinderCall):
+        chrA, posA = call.breakpointA.chr, call.breakpointA.pos
+        chrB, posB = call.breakpointB.chr, call.breakpointB.pos
+        startA, endA = call.breakpointA.start, call.breakpointA.end
+        startB, endB = call.breakpointB.start, call.breakpointB.end
+        category = call.category
+        resolution = call.resolution
+        neg_log_pval = call.neg_log_pval
+    else:
+        chrA, posA = call.chrA, (call.startA + call.endA) // 2
+        chrB, posB = call.chrB, (call.startB + call.endB) // 2
+        startA, endA = call.startA, call.endA
+        startB, endB = call.startB, call.endB
+        category = "N/A"
+        resolution = "N/A"
+        neg_log_pval = "N/A"
 
     # Get genes at call
     genesA, genesB = get_genes_at_call(call)
@@ -183,8 +218,6 @@ def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall, control: 
     nearbyA, nearbyB = get_genes_around_call(call)
 
     # Get breakfinder submatrix as string
-    startA, endA = call.breakpointA.start, call.breakpointA.end
-    startB, endB = call.breakpointB.start, call.breakpointB.end
     submatrix_string = f"{chrA}:{startA}-{endA} x {chrB}:{startB}-{endB}"
 
     # Geneerate direct and nearby genes
@@ -197,20 +230,21 @@ def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall, control: 
     html_genesB += "\n".join([make_html_gene(gene, direct=False) for gene in nearbyB if gene not in genesetB])
 
     # Generate call_region plot
-    calL_region_plot_fig = plot_composite_context_and_zoom(sample, call)
+    calL_region_plot_fig = plot_composite_context_and_zoom(sample, call, extra_bedpe=extra_bedpe_data, crosshairs=False)
     call_region_plot_base64 = fig_to_base64_and_close(calL_region_plot_fig)
 
     # Maybe generate control comparison plot
     html_maybe_comparison = make_html_comparison_plot(sample, control, call)
 
+
     # Replace template
     return TEMPLATE_CALL.format(
         call_region_string=call_to_string(call),
         call_region_string_no_spaces=call_to_alphanumeric_string(call),
-        category=call.category.value,
+        category=category,
         submatrix_string=submatrix_string,
-        call_resolution=call.resolution,
-        neg_log_p=call.neg_log_pval,
+        call_resolution=resolution,
+        neg_log_p=neg_log_pval,
         html_genesA=html_genesA,
         html_genesB=html_genesB,
         chrA=chrA,
@@ -220,12 +254,13 @@ def make_html_call(sample: ArimaPipelineSample, call: BreakfinderCall, control: 
 
     )
 
-def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=None, breakfinder_filepath: str | None=None, control_filepath: str | None=None ) -> str:
+def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=None, breakfinder_filepath: str | None=None, control_filepath: str | None=None, extra_bedpe: list[str]=[] ) -> str:
     """Generate HTML for a full report"""
 
     plt.ioff()
 
     sample = read_sample(sample_id, hic_filepath, qc_filepath, breakfinder_filepath)
+    extra_bedpe_data = [read_bedpe(filepath) for filepath in extra_bedpe]
 
     print(f"Hi-C sample loaded: {sample.id}. Generating report (this may take a while)...")
 
@@ -237,9 +272,16 @@ def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=
     else:
         control = None
 
+    if len(extra_bedpe) == 0:
+        bedpe_filepaths = "None"
+    else:
+        bedpe_filepaths = ""
+        for (filepath, color) in zip(extra_bedpe, BEDPE_COLORS):
+            bedpe_filepaths += f"<div style='background: {color}; height: 1rem; width: 1rem; display: inline-block; margin-right: 1rem;'></div>{filepath}<br>"
+
     if sample.breakfinder_calls is not None:
         # Generate call entries
-        html_calls = "\n".join([make_html_call(sample, call, control) for call in sample.breakfinder_calls])
+        html_calls = "\n".join([make_html_call(sample, call, control, extra_bedpe_data) for call in sample.breakfinder_calls])
         # Generate sidebar call entries
         html_sidebar_calls = "\n".join([make_html_sidebar_call(call) for call in sample.breakfinder_calls])
     else:
@@ -261,6 +303,7 @@ def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=
         hic_filepath=hic_filepath,
         qc_filepath=qc_filepath,
         breakfinder_filepath=breakfinder_filepath,
+        bedpe_filepaths=bedpe_filepaths,
         control_hic_filepath=control_filepath,
         generation_datetime=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         html_sidebar_sub_list=html_sidebar_calls,
@@ -269,7 +312,7 @@ def make_html_report(sample_id: str, hic_filepath: str, qc_filepath: str | None=
         html_breakfinder_calls=html_calls,
     )
 
-def make_html_report_and_save(sample_id: str, hic_filepath: str, qc_filepath: str | None=None, breakfinder_filepath: str | None=None, control_filepath: str | None=None, output_filepath: str | None=None) -> None:
+def make_html_report_and_save(sample_id: str, hic_filepath: str, qc_filepath: str | None=None, breakfinder_filepath: str | None=None, extra_bedpe: str | None=None, control_filepath: str | None=None, output_filepath: str | None=None) -> None:
     """Generate a full report and save it to a file"""
 
     if output_filepath is None:
@@ -278,7 +321,19 @@ def make_html_report_and_save(sample_id: str, hic_filepath: str, qc_filepath: st
     if not output_filepath.endswith(".html"):
         output_filepath += ".html"
 
-    report_html = make_html_report(sample_id, hic_filepath, qc_filepath, breakfinder_filepath, control_filepath)
+    if extra_bedpe is not None:
+        # Split by commas
+        extra_bedpe = extra_bedpe.split(",")
+    else:
+        extra_bedpe = []
+
+    if not os.path.exists(hic_filepath):
+        raise FileNotFoundError(f"Hi-C file not found at {hic_filepath}.")
+
+    if control_filepath is not None and not os.path.exists(control_filepath):
+        raise FileNotFoundError(f"Control Hi-C file not found at {control_filepath}.")
+
+    report_html = make_html_report(sample_id, hic_filepath, qc_filepath, breakfinder_filepath, control_filepath, extra_bedpe=extra_bedpe)
 
     with open(output_filepath, "w") as f:
         f.write(report_html)

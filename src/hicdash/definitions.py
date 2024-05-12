@@ -167,7 +167,6 @@ class Breakpoint:
     pos: int
     strand: Strand
 
-
 @dataclass
 class BreakfinderCall:
     """A structural variant call made by hic_breakfinder.
@@ -185,6 +184,16 @@ class BreakfinderCall:
     pairing: Pairing
     category: VariantCategory
 
+@dataclass
+class BedpeLine: 
+    """A generic bedpe line, with 6 guaranteed fields only."""
+
+    chrA: str
+    startA: int
+    endA: int
+    chrB: str
+    startB: int
+    endB: int
 
 @dataclass
 class ArimaPipelineSample:
@@ -212,7 +221,7 @@ class ArimaPipelineSample:
     id: str
     hic: HiCFile
     qc: QCData | None
-    breakfinder_calls: list[BreakfinderCall] | None
+    breakfinder_calls: list[BreakfinderCall] | list[BedpeLine] | None
     norm_constant: float
 
 
