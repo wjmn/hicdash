@@ -270,7 +270,7 @@ def plot_hic_region_matrix(
     crosshairs=False,
     show_submatrices=False,
     extra_bedpe: list[BedpeLine] = [],
-) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
+) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str]]]:
     """Plots a specified Hi-C region.
 
     For most accurate alignment, the regions should be aligned at the start of a resolution bin.
@@ -390,6 +390,7 @@ def plot_hic_region_matrix(
         ax.grid(True, which="both", linestyle="solid", linewidth=0.5, color="gainsboro")
 
     # Plot annotations
+    plotted_crosshairs = []
     if show_breakfinder_calls and sample.breakfinder_calls is not None:
 
         # Iterate through annotation sets: (annotations, color)
@@ -488,12 +489,14 @@ def plot_hic_region_matrix(
                                 linestyle=(0, (1, 5)),
                                 linewidth=1,
                             )
+                            plotted_crosshairs.append((chrX, posX, annotation_color))
+                            plotted_crosshairs.append((chrY, posY, annotation_color))
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
-    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY)
+    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY), plotted_crosshairs
 
 
 def plot_hic_centered_matrix(
@@ -505,7 +508,7 @@ def plot_hic_centered_matrix(
     resolution: int,
     radius: int,
     **kwargs,
-) -> tuple[plt.Axes, tuple[int, int], tuple[int, int]]:
+) -> tuple[plt.Axes, tuple[int, int], tuple[int, int], list[tuple[str, int, str]]]:
     """Plots a single centered Hi-C matrix and returns the axes, as well as the (startX, endX) and (startY, endY) axis limits.
 
     The axis limits have to be calculated here to ensure the plot is centered and axis limits are aligned with bins.
@@ -530,11 +533,11 @@ def plot_hic_centered_matrix(
     regionX = Region(chrX, startX, endX)
     regionY = Region(chrY, startY, endY)
 
-    ax, (startTrueX, endTrueX), (startTrueY, endTrueY) = plot_hic_region_matrix(
+    ax, (startTrueX, endTrueX), (startTrueY, endTrueY), plotted_crosshairs = plot_hic_region_matrix(
         sample, regionX, regionY, resolution, **kwargs
     )
 
-    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY)
+    return ax, (startTrueX, endTrueX), (startTrueY, endTrueY), plotted_crosshairs
 
 
 def plot_hic_chr_context(
@@ -845,6 +848,8 @@ def plot_gene_track(
     max_rows=6,
     min_rows=3,
     protein_coding_only=True,
+    crosshairs: bool=False, 
+    plotted_crosshairs: list[tuple[str, int, str]]=[],
 ) -> plt.Axes:
     """Plot a gene track (based on GENE_ANNOTATIONS) for a given range.
 
@@ -1024,6 +1029,25 @@ def plot_gene_track(
         else:
             ax.set_ylim(0 - plot_line_width, min_rows + plot_line_width)
 
+    # Add crosshairs if specified
+    if crosshairs:
+        for chr, pos, col in plotted_crosshairs:
+            if chr == chr:
+                if vertical:
+                    ax.axhline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+                else:
+                    ax.axvline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+
     return ax
 
 
@@ -1041,6 +1065,8 @@ def plot_coverage_track(
     bar_color="#61B8D1",
     label="Coverage",
     label_fontsize=8,
+    crosshairs: bool=False, 
+    plotted_crosshairs: list[tuple[str, int, str]]=[],
 ) -> plt.Axes:
     """Plot a coverage track for a given chromosome region.
 
@@ -1091,6 +1117,26 @@ def plot_coverage_track(
         ax.yaxis.set_visible(False)
         ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
 
+    # Add crosshairs if specified
+    if crosshairs:
+        for chr, pos, col in plotted_crosshairs:
+            if chr == chr:
+                if vertical:
+                    ax.axhline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+                else:
+                    ax.axvline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+
+
     # Add label
     if vertical:
         ax.text(
@@ -1129,6 +1175,8 @@ def plot_bigwig_track(
     fontsize=8,
     label: str = "",
     color="blue",
+    crosshairs: bool=False, 
+    plotted_crosshairs: list[tuple[str, int, str]]=[],
 ) -> plt.Axes:
 
     # Check if chromosomes are prefixed or unprefixed
@@ -1138,17 +1186,29 @@ def plot_bigwig_track(
         chr = chr_unprefix(chr)
 
     # Get the data from the bigwig file
-    data = bw_handle.stats(chr, start, end, type="mean", nBins=num_bins, numpy=True)
+    # FIrst ensure bounds are safe 
+    safe_start = max(0, start)
+    safe_end = min(CHROM_SIZES[chr], end)
+    safe_nbins = (safe_end - safe_start) // ((end - start) // num_bins)
+    data = bw_handle.stats(chr, safe_start, safe_end, type="mean", nBins=safe_nbins, numpy=True)
+    # Pad with extra zeros if was out of bounds initially
+    bin_width = (end - start) / num_bins
+    if start < 0:
+        data = np.pad(data, (int(-start // bin_width), 0), "constant")
+    if end > CHROM_SIZES[chr]:
+        data = np.pad(data, (0, int((end - CHROM_SIZES[chr]) // bin_width)+1), "constant")
 
     # TODO: Using an arbitrary region for normalization for now, but probably want to choose a different normalization region at some point
-    normalizer = bw_handle.stats(
+    normalizer = np.nanmax(bw_handle.stats(
         "chr2",
         20000000,
-        20000000 + (end - start),
+        20000000 + (safe_end - safe_start),
         type="mean",
         nBins=num_bins,
         numpy=True,
-    ).max()
+    ))
+    if np.isnan(normalizer) or normalizer == 0:
+        normalizer = np.nanmax(data)
 
     positions = np.linspace(start, end, num_bins)
 
@@ -1172,6 +1232,26 @@ def plot_bigwig_track(
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
+
+    # Add crosshairs if specified
+    if crosshairs:
+        for chr, pos, col in plotted_crosshairs:
+            if chr == chr:
+                if vertical:
+                    ax.axhline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+                else:
+                    ax.axvline(
+                        pos,
+                        color=col,
+                        linestyle=(0, (1, 5)),
+                        linewidth=1,
+                    )
+
 
     # Add label
     if vertical:
@@ -1197,6 +1277,7 @@ def plot_bigwig_track(
             color="gray",
             fontdict={"fontsize": fontsize},
         )
+
 
 
 # -------------------------------------------------------------------------------
@@ -1231,6 +1312,7 @@ def plot_composite_context_and_zoom(
     coverage_track=True,
     hide_track_axes=True,
     extra_bigwig_handles: list[tuple[str, object]] = [],
+    crosshairs=False,
     **kwargs,
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
@@ -1294,7 +1376,7 @@ def plot_composite_context_and_zoom(
         chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Plot zoomed hic matrix first to get axis bounds
-    _, (xmin, xmax), (ymin, ymax) = plot_hic_centered_matrix(
+    _, (xmin, xmax), (ymin, ymax), plotted_crosshairs = plot_hic_centered_matrix(
         sample,
         chrA,
         posA,
@@ -1304,6 +1386,7 @@ def plot_composite_context_and_zoom(
         radius=zoom_radius,
         ax=ax_zoom,
         extra_bedpe=extra_bedpe,
+        crosshairs=crosshairs,
         **kwargs,
     )
 
@@ -1345,6 +1428,8 @@ def plot_composite_context_and_zoom(
             ax=ax_coverage_top,
             hide_axes=hide_track_axes,
             label_fontsize=7,
+            crosshairs=crosshairs, 
+            plotted_crosshairs=plotted_crosshairs,
         )
         plot_coverage_track(
             sample,
@@ -1356,6 +1441,8 @@ def plot_composite_context_and_zoom(
             ax=ax_coverage_bottom,
             hide_axes=hide_track_axes,
             label_fontsize=7,
+            crosshairs=crosshairs, 
+            plotted_crosshairs=plotted_crosshairs,
         )
 
     # Plot gene tracks
@@ -1367,6 +1454,8 @@ def plot_composite_context_and_zoom(
         fontsize=gene_fontsize,
         gene_filter=gene_filter,
         hide_axes=hide_track_axes,
+        crosshairs=crosshairs, 
+        plotted_crosshairs=plotted_crosshairs,
     )
     plot_gene_track(
         chrB,
@@ -1377,6 +1466,8 @@ def plot_composite_context_and_zoom(
         fontsize=gene_fontsize,
         gene_filter=gene_filter,
         hide_axes=hide_track_axes,
+        crosshairs=crosshairs, 
+        plotted_crosshairs=plotted_crosshairs,
     )
 
     # For each bigwig track, plot
@@ -1396,6 +1487,8 @@ def plot_composite_context_and_zoom(
             hide_axes=hide_track_axes,
             color=color,
             fontsize=7,
+            crosshairs=crosshairs, 
+            plotted_crosshairs=plotted_crosshairs,
         )
         plot_bigwig_track(
             bw_handle,
@@ -1408,6 +1501,8 @@ def plot_composite_context_and_zoom(
             hide_axes=hide_track_axes,
             color=color,
             fontsize=7,
+            crosshairs=crosshairs, 
+            plotted_crosshairs=plotted_crosshairs,
         )
 
     # If no specified title, then make metadata title
@@ -1465,7 +1560,7 @@ def plot_composite_compare_two(
         chrB, posB = call.chrB, (call.startB + call.endB) // 2
 
     # Plot zoomed hic matrices in each center plot
-    _, (xmin1, xmax1), (ymin1, ymax1) = plot_hic_centered_matrix(
+    _, (xmin1, xmax1), (ymin1, ymax1), _ = plot_hic_centered_matrix(
         sample1,
         chrA,
         posA,
@@ -1475,7 +1570,7 @@ def plot_composite_compare_two(
         radius=radius,
         ax=ax1_center,
     )
-    _, (xmin2, xmax2), (ymin2, ymax2) = plot_hic_centered_matrix(
+    _, (xmin2, xmax2), (ymin2, ymax2), _ = plot_hic_centered_matrix(
         sample2,
         chrA,
         posA,
