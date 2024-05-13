@@ -79,7 +79,7 @@ If extra `--bedpe` file(s) are specified, they are simply added as annotations t
 
 ## Changelog
 
-* v0.02 (2024-05-12)
+* v0.0.2 (2024-05-12)
     * Allow plotting extra 2D (.bedpe) annotations.
     * Allow plotting extra 1D (.bigwig) tracks.
     * More thorough QC metrics.
