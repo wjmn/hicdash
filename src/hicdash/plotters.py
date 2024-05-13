@@ -1695,13 +1695,29 @@ def plot_composite_compare_two(
 # -------------------------------------------------------------------------------
 
 
-def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
+def plot_qc(sample: ArimaPipelineSample, figsize=(13, 8)) -> plt.Figure:
 
     fig = plt.figure(figsize=figsize)
     qc = sample.qc
 
-    # Plot of raw and mapped reads
+    # Plot of unique valid pairs vs all raw pairs
     plt.subplot(5, 1, 1)
+    raw_pairs = int(qc.raw_pairs) / 1e6
+    unique_valid_pairs = int(qc.unique_valid_pairs) / 1e6
+    plt.barh(1, raw_pairs, color="lightgray")
+    plt.barh(1, unique_valid_pairs, color="black")
+    plt.yticks([])
+    plt.xlim(0, 600)
+    plt.ylim(0.5, 4)
+    plt.text(0, 2, "Total informative pairs (million pairs)", fontsize=12, va="bottom")
+    plt.gca().spines[["top", "left", "right"]].set_visible(False)
+    plt.text(raw_pairs, 1.5, f"{int(raw_pairs)} million raw pairs", color="black", ha="right", va="bottom", fontsize=9)
+    plt.text(0, 1.5, f"{int(unique_valid_pairs)} million unique valid pairs", color="black", ha="left", va="bottom", fontsize=9)
+    plt.title(f"Arima SV Pipeline QC Metrics for {sample.id}")
+
+
+    # Plot of raw and mapped reads
+    plt.subplot(5, 1, 2)
     raw_pairs = int(qc.raw_pairs) / 1e6
     mapped_se = int(qc.mapped_se_reads) / 1e6
     mapped_se_pct = int(qc.mapped_se_reads_pct)
@@ -1709,8 +1725,10 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
     plt.barh(1, mapped_se, color="lightskyblue")
     plt.yticks([])
     plt.xlim([0, 1200])
-    plt.title("Read mapping (single-end mode)")
-    plt.xlabel("Count (x10^6)")
+    plt.ylim(0.5, 4)
+    plt.text(0, 2.5, "Read mapping (single-end mode, million reads)", va="bottom", fontsize=12)
+    # plt.xlabel("Count (million reads)")
+    plt.gca().spines[["top", "left", "right"]].set_visible(False)
 
     patches = plt.gca().patches
     labels = [
@@ -1729,7 +1747,7 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
         )
 
     # Plot of valid, duplicate and invalid reads (and invalid composition)
-    plt.subplot(5, 1, 2)
+    plt.subplot(5, 1, 3)
     left = 0
     unique_valid_pairs = qc.unique_valid_pairs_pct
     duplicates = qc.duplicated_pct
@@ -1775,8 +1793,10 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
 
     plt.yticks([])
     plt.xlim([0, 100])
-    plt.title("Pair validity")
-    plt.xlabel("% of pairs")
+    plt.ylim(-0.5, 3)
+    plt.text(0, 1.5, "Pair validity (% of aligned pairs)", fontsize=12, va="bottom")
+    # plt.xlabel("% of pairs")
+    plt.gca().spines[["top", "left", "right"]].set_visible(False)
 
     patches = plt.gca().patches
     labels = [
@@ -1785,8 +1805,8 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
         f"{unique_valid_pairs}% valid",
         f"{circular}% circular",
         f"{dangling}% dangling",
-        f"{fragment}% same fragment",
-        f"{re_ligation}% re-ligation",
+        f"{fragment}% internal",
+        f"{re_ligation}% re-ligated",
         f"{contiguous}% contiguous",
         f"{wrong_size}% wrong size",
     ]
@@ -1826,50 +1846,93 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(12, 8)) -> plt.Figure:
             else:
                 pass
 
+    plt.subplot(5, 6, 19)
+    wedges = plt.pie([circular, 100-circular], colors=[base_color, "lightgray"], radius=0.5)
+    plt.text(0, 0.8, f"Circular: {circular}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
+    plt.subplot(5, 6, 20)
+    wedges = plt.pie([dangling, 100-dangling], colors=[base_color, "lightgray"], radius=0.5)
+    wedges[0][0].set_alpha(5/6)
+    plt.text(0, 0.8, f"Dangling: {dangling}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
+    plt.subplot(5, 6, 21)
+    wedges = plt.pie([fragment, 100-fragment], colors=[base_color, "lightgray"], radius=0.5)
+    wedges[0][0].set_alpha(4/6)
+    plt.text(0, 0.8, f"Internal: {fragment}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
+    plt.subplot(5, 6, 22)
+    wedges = plt.pie([re_ligation, 100-re_ligation], colors=[base_color, "lightgray"], radius=0.5)
+    wedges[0][0].set_alpha(3/6)
+    plt.text(0, 0.8, f"Re-ligated: {re_ligation}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
+    plt.subplot(5, 6, 23)
+    wedges = plt.pie([contiguous, 100-contiguous], colors=[base_color, "lightgray"], radius=0.5)
+    wedges[0][0].set_alpha(2/6)
+    plt.text(0, 0.8, f"Contiguous: {contiguous}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
+    plt.subplot(5, 6, 24)
+    wedges = plt.pie([wrong_size, 100-wrong_size], colors=[base_color, "lightgray"], radius=0.5)
+    wedges[0][0].set_alpha(1/6)
+    plt.text(0, 0.8, f"Wrong size: {wrong_size}%", fontsize=10, ha="center", va="center")
+    plt.ylim(-0.5, 1.1)
+
     # Plot of library size
-    plt.subplot(5, 5, 11)
+    plt.subplot(5, 5, 21)
     mean_lib_length = int(qc.mean_lib_length)
     plt.barh(0, mean_lib_length, color="black")
     plt.xlim([0, 400])
     plt.yticks([])
-    plt.title(f"Mean library length\n{mean_lib_length}bp")
+    plt.ylim(-0.5, 1)
+    plt.text(0, 0.5, f"Mean lib length\n{mean_lib_length}bp", fontsize=11, va="bottom")
+    plt.gca().spines[['top', 'left', 'right']].set_visible(False)
 
     # Plot of % truncated
-    plt.subplot(5, 5, 12)
+    plt.subplot(5, 5, 22)
     truncated = qc.truncated_pct
     plt.barh(0, truncated, color="darkorange")
     plt.xlim([0, 100])
-    plt.title(f"% truncated\n{truncated}%")
+    plt.ylim(-0.5, 1)
+    plt.text(0, 0.5, f"% truncated\n{truncated}%", fontsize=11, va="bottom")
     plt.yticks([])
+    plt.gca().spines[['top', 'left', 'right']].set_visible(False)
 
     # Plot of intra and inter
-    plt.subplot(5, 5, 13)
+    plt.subplot(5, 5, 23)
     left = 0
     intra = qc.intra_pairs_pct
     inter = qc.inter_pairs_pct
-    plt.barh(1, intra, color="purple", left=left)
-    plt.barh(1, inter, color="plum", left=left + intra)
+    plt.barh(0, intra, color="purple", left=left)
+    plt.barh(0, inter, color="plum", left=left + intra)
     plt.yticks([])
-    plt.title(f"% intra/inter\n{intra}%/{inter}%")
+    plt.ylim(-0.5, 1)
+    plt.text(0, 0.5, f"% intra/inter\n{intra}%/{inter}%", fontsize=11, va="bottom")
     plt.xlim([0, 100])
+    plt.gca().spines[['top', 'left', 'right']].set_visible(False)
 
     # Plot of LCIS and trans
-    plt.subplot(5, 5, 14)
+    plt.subplot(5, 5, 24)
     lcis_trans_ratio = qc.lcis_trans_ratio
     plt.barh(0, lcis_trans_ratio, color="slateblue")
     plt.xlim([0, 4])
     plt.yticks([])
-    plt.title(f"Lcis/Trans ratio\n{lcis_trans_ratio}")
+    plt.ylim(-0.5, 1)
+    plt.text(0, 0.5, f"Lcis/Trans ratio\n{lcis_trans_ratio}", fontsize=11, va="bottom")
+    plt.gca().spines[['top', 'left', 'right']].set_visible(False)
 
     # # Plot of Number of SV Breakfinder Calls
-    plt.subplot(5, 5, 15)
+    plt.subplot(5, 5, 25)
     num_sv_calls = len(sample.breakfinder_calls)
     plt.barh(0, num_sv_calls, color="dimgray")
     plt.xlim([0, 100])
     plt.yticks([])
-    plt.title(f"Breakpoints\n{num_sv_calls}")
+    plt.ylim(-0.5, 1)
+    plt.text(0, 0.5, f"Breakpoints\n{num_sv_calls}", fontsize=11, va="bottom")
+    plt.gca().spines[['top', 'left', 'right']].set_visible(False)
 
-    plt.suptitle(f"Arima SV Pipeline QC Metrics for {sample.id}")
-    plt.tight_layout()
-
+    
     return fig

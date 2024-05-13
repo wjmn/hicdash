@@ -273,7 +273,7 @@ def make_html_call(
         chrB, posB = call.breakpointB.chr, call.breakpointB.pos
         startA, endA = call.breakpointA.start, call.breakpointA.end
         startB, endB = call.breakpointB.start, call.breakpointB.end
-        category = call.category
+        category = call.category.value
         resolution = call.resolution
         neg_log_pval = call.neg_log_pval
     else:
