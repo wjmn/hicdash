@@ -15,8 +15,8 @@ def main():
     parser.add_argument("--bigwig", type=str, help="Filepath(s) (comma-delimited) to extra .bigwig files to be annotated.", default=None)
     parser.add_argument("--control", type=str, help="Filepath to control Hi-C file for visual comparison.", default=None)
     parser.add_argument("--output", type=str, help="Filepath to save the report into (include .html extension).")
-    parser.add_argument("--crosshairs", type=bool, help="Add crosshairs to all breaks and annotations.", default=False)
-    parser.add_argument("--grid", type=bool, help="Add a grid to the zoomed plot.", default=False)
+    parser.add_argument("--crosshairs", type=bool, help="Add crosshairs to all breaks and annotations.", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--grid", type=bool, help="Add a grid to the zoomed plot.", default=False, action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
 

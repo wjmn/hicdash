@@ -49,6 +49,8 @@ python -m hicdash \
     --hic /home/wjmn/repos/hicdash/example_data/EXAMPLE_inter_30.hic \
     --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.breaks.bedpe \
     --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
+    --grid \
+    --crosshairs \
     --output report.html 
 ```
 
@@ -82,6 +84,7 @@ If extra `--bedpe` file(s) are specified, they are simply added as annotations t
 * v0.0.2 (2024-05-12)
     * Allow plotting extra 2D (.bedpe) annotations.
     * Allow plotting extra 1D (.bigwig) tracks.
+    * Plot zoom plot at call resolution. 
     * More thorough QC metrics.
     * Added row of plots with breakpoint at multiple resolutions to report. 
     * Added crosshair and gridline options. 
