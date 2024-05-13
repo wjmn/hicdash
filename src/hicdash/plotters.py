@@ -1405,6 +1405,7 @@ def plot_composite_context_and_zoom(
     grid=False,
     plot_at_call_resolution=False,
     min_gene_rows=3,
+    centered_gene_names=False,
     **kwargs,
 ) -> plt.Figure:
     """Plot whole-chromosome context on left and zoomed breakfinder call on right with gene track."""
@@ -1555,6 +1556,7 @@ def plot_composite_context_and_zoom(
         crosshairs=crosshairs, 
         plotted_crosshairs=plotted_crosshairs,
         min_rows=min_gene_rows,
+        centered_names=centered_gene_names,
     )
     plot_gene_track(
         chrB,
@@ -1568,6 +1570,7 @@ def plot_composite_context_and_zoom(
         crosshairs=crosshairs, 
         plotted_crosshairs=plotted_crosshairs,
         min_rows=min_gene_rows,
+        centered_names=centered_gene_names,
     )
 
     # For each bigwig track, plot
