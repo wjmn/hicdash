@@ -1104,17 +1104,8 @@ def plot_gene_track(
             ymin, ymax = ax.get_ylim()
             ax.set_ylim(ymin, ymax + plot_line_width / 2)
 
-    # If only one gene was plotted, then center it 
-    if plot_counter == 1:
-        if vertical:
-            xmax, xmin = ax.get_xlim()
-            ax.set_xlim(xmax + plot_line_width / 2, xmin - plot_line_width / 2)
-        else:
-            ymin, ymax = ax.get_ylim()
-            ax.set_ylim(ymin - plot_line_width / 2, ymax + plot_line_width / 2)
-
     # If only a few genes were plotted, then add a bit of space padding to the plot
-    elif plot_counter < min_rows:
+    if plot_counter < min_rows:
         if vertical:
             ax.set_xlim(min_rows + plot_line_width, 0 - plot_line_width)
         else:
