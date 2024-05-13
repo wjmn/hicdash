@@ -50,7 +50,7 @@ python -m hicdash \
     --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.short.bedpe \
     --bedpe /home/wjmn/repos/hicdash/example_data/EXAMPLE.eaglec.bedpe,/home/wjmn/repos/hicdash/example_data/EXAMPLE.neoloops.bedpe \
     --bigwig /home/wjmn/repos/hicdash/example_data/EXAMPLE.h3k27ac.bigwig,/home/wjmn/repos/hicdash/example_data/EXAMPLE.ctcf.bigwig \
-    --crosshair \
+    --crosshairs \
     --grid \
     --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
     --output example.html 
