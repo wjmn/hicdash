@@ -926,7 +926,7 @@ def plot_gene_track(
 
     # Use 5 percent as a temporary padding value
     pct_5 = 5 * (end - start) / 100
-    max_arrowhead_width = (end - start) / 50
+    max_arrowhead_width = (end - start) / 75
     plot_line_width = 0.4
 
     # Get genes which intersect the center directly
