@@ -1711,7 +1711,7 @@ def plot_qc(sample: ArimaPipelineSample, figsize=(13, 8)) -> plt.Figure:
     plt.ylim(0.5, 4)
     plt.text(0, 2, "Total informative pairs (million pairs)", fontsize=12, va="bottom")
     plt.gca().spines[["top", "left", "right"]].set_visible(False)
-    plt.text(raw_pairs, 1.5, f"{int(raw_pairs)} million raw pairs", color="black", ha="right", va="bottom", fontsize=9)
+    plt.text(raw_pairs + 3, 1, f"{int(raw_pairs)} million raw pairs", color="black", ha="left", va="center", fontsize=9)
     plt.text(0, 1.5, f"{int(unique_valid_pairs)} million unique valid pairs", color="black", ha="left", va="bottom", fontsize=9)
     plt.title(f"Arima SV Pipeline QC Metrics for {sample.id}")
 
