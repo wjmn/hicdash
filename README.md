@@ -40,18 +40,20 @@ You may also need to run `pyensembl install --release 110 --species homo_sapiens
 
 ## Usage
 
-Here's an example of running `hicdash`:
+Here's an example of running `hicdash` with all the command line options (though you probably don't need all of them at once):
 
 ```bash
 python -m hicdash \
     --prefix EXAMPLE \
     --qc /home/wjmn/repos/hicdash/example_data/EXAMPLE_v1.3_Arima_QC_deep.txt \
     --hic /home/wjmn/repos/hicdash/example_data/EXAMPLE_inter_30.hic \
-    --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.breaks.bedpe \
-    --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
+    --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.short.bedpe \
+    --bedpe /home/wjmn/repos/hicdash/example_data/EXAMPLE.eaglec.bedpe,/home/wjmn/repos/hicdash/example_data/EXAMPLE.neoloops.bedpe \
+    --bigwig /home/wjmn/repos/hicdash/example_data/EXAMPLE.h3k27ac.bigwig,/home/wjmn/repos/hicdash/example_data/EXAMPLE.ctcf.bigwig \
+    --crosshair \
     --grid \
-    --crosshairs \
-    --output report.html 
+    --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
+    --output example.html 
 ```
 
 (example data is not included with this repo, so make sure to replace the arguments above with paths to your data)
