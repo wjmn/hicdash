@@ -1020,6 +1020,7 @@ def plot_gene_track(
                     fontweight=fontweight,
                 )
             else:
+                row_position = plot_counter
                 va = "bottom"
                 text_position = gene.start - (pct_5 * 0.25)
                 if gene.strand == "-":
@@ -1029,8 +1030,12 @@ def plot_gene_track(
                     va = "top"
                     if gene.strand == "+":
                         text_position += max_arrowhead_width
+                    if text_position + pct_5 > ax.get_ylim()[0]:
+                        text_position = ax.get_ylim()[0]
+                        va = "bottom"
+                        row_position = plot_counter + plot_line_width / 2
                 ax.text(
-                    plot_counter,
+                    row_position,
                     text_position,
                     gene.gene_name,
                     ha="center",
@@ -1063,6 +1068,7 @@ def plot_gene_track(
                 )
             else:
                 ha = "right"
+                row_position = plot_counter
                 text_position = gene.start - (pct_5 * 0.25)
                 if gene.strand == "-":
                     text_position -= max_arrowhead_width
@@ -1071,9 +1077,13 @@ def plot_gene_track(
                     ha = "left"
                     if gene.strand == "+":
                         text_position += max_arrowhead_width
+                    if text_position + pct_5 > ax.get_xlim()[1]:
+                        text_position = ax.get_xlim()[1]
+                        ha = "right"
+                        row_position = plot_counter + plot_line_width / 2
                 ax.text(
                     text_position,
-                    plot_counter,
+                    row_position,
                     gene.gene_name,
                     ha=ha,
                     va="center",
