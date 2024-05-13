@@ -863,6 +863,7 @@ def plot_gene_track(
     protein_coding_only=True,
     crosshairs: bool=False, 
     plotted_crosshairs: list[tuple[str, int, str, float]]=[],
+    centered_names=False,
 ) -> plt.Axes:
     """Plot a gene track (based on GENE_ANNOTATIONS) for a given range.
 
@@ -908,11 +909,10 @@ def plot_gene_track(
     # Prepare axes
     if vertical:
         ax.set_ylim(start, end)
+        ax.invert_yaxis()
+        ax.invert_xaxis()
     else:
         ax.set_xlim(start, end)
-
-    # Invert y axis regardless of orientation
-    ax.invert_yaxis()
 
     if hide_axes:
         ax.yaxis.set_visible(False)
@@ -926,7 +926,7 @@ def plot_gene_track(
 
     # Use 5 percent as a temporary padding value
     pct_5 = 5 * (end - start) / 100
-    max_arrowhead_width = (end - start) / 100
+    max_arrowhead_width = (end - start) / 50
     plot_line_width = 0.4
 
     # Get genes which intersect the center directly
@@ -996,47 +996,115 @@ def plot_gene_track(
         # Bolden the text if passes directly through the center of the range (assuming a breakpoint is in the center)
         # fontweight = "bold" if gene.gene_name in direct_genes_set else "normal"
         fontweight = "normal"
+        color = "black"
         if vertical:
-            va = "top"
-            text_position = gene.end + (pct_5 * 0.3)
-            color = "black"
-            if text_position + pct_5 > ax.get_ylim()[0]:
-                text_position = gene.start - (pct_5 * 0.3)
+            if centered_names:
+                text_position = (gene.end + gene.start) / 2
+                ha = "right"
+                va = "center"
+                if text_position + pct_5 > ax.get_ylim()[0]:
+                    text_position = ax.get_ylim()[0]
+                    va = "bottom"
+                elif  text_position - pct_5 < ax.get_ylim()[1]:
+                    text_position = ax.get_ylim()[1]
+                    va = "top"
+                ax.text(
+                    plot_counter+plot_line_width/2,
+                    text_position,
+                    gene.gene_name,
+                    ha=ha,
+                    va=va,
+                    fontsize=fontsize,
+                    rotation=90,
+                    color=color,
+                    fontweight=fontweight,
+                )
+            else:
                 va = "bottom"
-            ax.text(
-                plot_counter,
-                text_position,
-                gene.gene_name,
-                ha="center",
-                va=va,
-                fontsize=fontsize,
-                rotation=90,
-                color=color,
-                fontweight=fontweight,
-            ).set_clip_on(True)
+                text_position = gene.start - (pct_5 * 0.25)
+                if gene.strand == "-":
+                    text_position -= max_arrowhead_width
+                if text_position - pct_5 < ax.get_ylim()[1]:
+                    text_position = gene.end + (pct_5 * 0.25)
+                    va = "top"
+                    if gene.strand == "+":
+                        text_position += max_arrowhead_width
+                ax.text(
+                    plot_counter,
+                    text_position,
+                    gene.gene_name,
+                    ha="center",
+                    va=va,
+                    fontsize=fontsize,
+                    rotation=90,
+                    color=color,
+                    fontweight=fontweight,
+                ).set_clip_on(True)
         else:
-            ha = "right"
-            text_position = gene.start - (pct_5 * 0.5)
-            color = "black"
-            if text_position - pct_5 < ax.get_xlim()[0]:
-                text_position = gene.end + (pct_5 * 0.5)
-                ha = "left"
-            ax.text(
-                text_position,
-                plot_counter,
-                gene.gene_name,
-                ha=ha,
-                va="center",
-                fontsize=fontsize,
-                color=color,
-                fontweight=fontweight,
-            ).set_clip_on(True)
+            if centered_names:
+                text_position = (gene.end + gene.start) / 2
+                ha = "center"
+                va = "bottom"
+                if text_position - pct_5 < ax.get_xlim()[0]:
+                    text_position = ax.get_xlim()[0]
+                    ha = "left"
+                elif text_position + pct_5 > ax.get_xlim()[1]:
+                    text_position = ax.get_xlim()[1]
+                    ha = "right"
+                ax.text(
+                    text_position,
+                    plot_counter+plot_line_width/2,
+                    gene.gene_name,
+                    ha=ha,
+                    va=va,
+                    fontsize=fontsize,
+                    color=color,
+                    fontweight=fontweight,
+                )
+            else:
+                ha = "right"
+                text_position = gene.start - (pct_5 * 0.25)
+                if gene.strand == "-":
+                    text_position -= max_arrowhead_width
+                if text_position - pct_5 < ax.get_xlim()[0]:
+                    text_position = gene.end + (pct_5 * 0.25)
+                    ha = "left"
+                    if gene.strand == "+":
+                        text_position += max_arrowhead_width
+                ax.text(
+                    text_position,
+                    plot_counter,
+                    gene.gene_name,
+                    ha=ha,
+                    va="center",
+                    fontsize=fontsize,
+                    color=color,
+                    fontweight=fontweight,
+                ).set_clip_on(True)
 
         # Increment plot counter
         plot_counter += 1
 
+    # Extend the axis limits if centered_gene_names is used
+    if centered_names and plot_counter >= min_rows:
+        if vertical:
+            xmax, xmin = ax.get_xlim()
+            ax.set_xlim(xmax + plot_line_width / 2, xmin)
+        else:
+            ymin, ymax = ax.get_ylim()
+            ax.set_ylim(ymin, ymax + plot_line_width / 2)
+
+    # If only one gene was plotted, then center it 
+    if plot_counter == 1:
+        if vertical:
+            xmax, xmin = ax.get_xlim()
+            ax.set_xlim(xmax + plot_line_width / 2, xmin - plot_line_width / 2)
+        else:
+            ymin, ymax = ax.get_ylim()
+            ax.set_ylim(ymin - plot_line_width / 2, ymax + plot_line_width / 2)
+
     # If only a few genes were plotted, then add a bit of space padding to the plot
-    if plot_counter < min_rows:
+    elif plot_counter < min_rows:
         if vertical:
             ax.set_xlim(min_rows + plot_line_width, 0 - plot_line_width)
         else:
