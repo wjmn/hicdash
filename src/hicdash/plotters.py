@@ -297,7 +297,12 @@ def plot_hic_region_matrix(
 
     # Set max of color scale to a quarter ot the max value (but at least 1)
     if vmax is None:
-        vmax = max(1 / sample.norm_constant, masked.max() / 4)
+        # Set color scale max depending if interchromosomal or intrachromosomal and on resolution
+        vmax = max(1 / sample.norm_constant, masked.max())
+        if resolution <= 100000:
+            vmax = vmax / 4
+        elif resolution <= 500000:
+            vmax = vmax / 1.5
 
     # Unpack region for convenience
     chrX, startX, endX = regionX.chr, regionX.start, regionX.end

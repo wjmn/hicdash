@@ -118,6 +118,8 @@ def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall] | 
             # If it's got a greater index, then swap breakpoints
             if CHROM_INDICES[breakpointA.chr] > CHROM_INDICES[breakpointB.chr]:
                 breakpointA, breakpointB = breakpointB, breakpointA
+            elif CHROM_INDICES[breakpointA.chr] == CHROM_INDICES[breakpointB.chr] and breakpointA.pos > breakpointB.pos:
+                breakpointA, breakpointB = breakpointB, breakpointA
 
             # Assign the call a variant category
             if breakpointA.chr != breakpointB.chr:
