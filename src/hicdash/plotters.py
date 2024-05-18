@@ -297,7 +297,7 @@ def plot_hic_region_matrix(
 
     # Set max of color scale to a quarter ot the max value (but at least 1)
     if vmax is None:
-        vmax = max(1, masked.max() // 4)
+        vmax = max(1 / sample.norm_constant, masked.max() / 4)
 
     # Unpack region for convenience
     chrX, startX, endX = regionX.chr, regionX.start, regionX.end
