@@ -29,7 +29,7 @@ def read_qc(qc_filepath: str) -> QCData:
 
     # Read the Arima-SV Pipeline QC deep file
     # The file format is TSV with a single header row
-    df = pd.read_csv(qc_filepath, sep="\t", header=0)
+    df = pd.read_csv(qc_filepath, sep="\s+", header=0)
 
     # The QC deep file is essentially a table with a single row - get the row
     row = df.iloc[0]
@@ -78,13 +78,13 @@ def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall] | 
 
     # The first row of the .breaks.bedpe file is a comment with the column names, so skip it
     df = pd.read_csv(
-        breakfinder_filepath, sep="\t", names=BREAKFINDER_COLUMNS, skiprows=1
+        breakfinder_filepath, sep="\s+", names=BREAKFINDER_COLUMNS, skiprows=1
     )
     # Check if strand column is a string; if not, then default to bedpe
     if len(df) > 0 and not isinstance(df.iloc[0,6], str):
         is_breakfinder = False
         df = pd.read_csv(
-            breakfinder_filepath, sep="\t", names=BEDPE_COLUMNS, skiprows=0
+            breakfinder_filepath, sep="\s+", names=BEDPE_COLUMNS, skiprows=0
         )
     else:
         is_breakfinder = True
@@ -175,7 +175,7 @@ def read_breakfinder_data(breakfinder_filepath: str) -> list[BreakfinderCall] | 
 def read_bedpe(bedpe_filepath: str) -> list[BedpeLine]:
     """Read a bedpe file and return a list of BedpeLine objects."""
     df = pd.read_csv(
-        bedpe_filepath, sep="\t", names=BEDPE_COLUMNS, skiprows=0, usecols=[0, 1, 2, 3, 4, 5]
+        bedpe_filepath, sep="\s+", names=BEDPE_COLUMNS, skiprows=0, usecols=[0, 1, 2, 3, 4, 5]
     )
     lines = []
     for _, row in df.iterrows():
