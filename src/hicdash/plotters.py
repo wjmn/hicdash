@@ -299,8 +299,12 @@ def plot_hic_region_matrix(
     if vmax is None:
         # Set color scale max depending if interchromosomal or intrachromosomal and on resolution
         vmax = max(1 / sample.norm_constant, masked.max())
-        if resolution <= 100000:
+        if resolution <= 10000:
             vmax = vmax / 4
+        elif resolution <= 50000:
+            vmax = vmax / 3
+        elif resolution <= 100000:
+            vmax = vmax / 2
         elif resolution <= 500000:
             vmax = vmax / 1.5
 
