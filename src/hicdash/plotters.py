@@ -864,6 +864,7 @@ def plot_gene_track(
     crosshairs: bool=False, 
     plotted_crosshairs: list[tuple[str, int, str, float]]=[],
     centered_names=False,
+    max_arrowhead_width=None,
 ) -> plt.Axes:
     """Plot a gene track (based on GENE_ANNOTATIONS) for a given range.
 
@@ -926,7 +927,8 @@ def plot_gene_track(
 
     # Use 5 percent as a temporary padding value
     pct_5 = 5 * (end - start) / 100
-    max_arrowhead_width = (end - start) / 75
+    if max_arrowhead_width is None:
+        max_arrowhead_width = (end - start) / 75
     plot_line_width = 0.4
 
     # Get genes which intersect the center directly
