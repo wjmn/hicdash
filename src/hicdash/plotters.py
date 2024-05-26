@@ -989,7 +989,7 @@ def plot_gene_track(
                         exon_width,
                         exon_length,
                         edgecolor="black",
-                        facecolor="dodgerblue",
+                        facecolor="black",
                     )
                 )
             else:
@@ -999,7 +999,7 @@ def plot_gene_track(
                         exon_length,
                         exon_width,
                         edgecolor="black",
-                        facecolor="dodgerblue",
+                        facecolor="black",
                     )
                 )
 
