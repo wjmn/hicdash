@@ -30,9 +30,11 @@ def to_mega(number: int, dp=1) -> float:
     return round(number / 1e6, dp)
 
 
-def resolution_to_int(suffixed_str: str) -> int:
+def resolution_to_int(suffixed_str: str | int) -> int:
     """Convert a string with a "Mb" or "kb" suffix to an int.
     """
+    if isinstance(suffixed_str, int):
+        return suffixed_str
     if suffixed_str.endswith("Mb"):
         return int(float(suffixed_str[:-2]) * 1e6)
     elif suffixed_str.endswith("kb"):
