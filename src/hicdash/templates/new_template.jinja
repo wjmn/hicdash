@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+
+    <style>
+        /* Defaults */
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            font-family: Helvetica, Arial, system-ui, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 1rem;
+        }
+        h1 {
+            margin: 0;
+            padding: 0;
+            font-size: 2em;
+        }
+        h2 {
+            margin: 0;
+            padding: 0;
+            font-size: 1.5em;
+            display: inline-block;
+        }
+        summary {
+            padding: 0.5em;
+            align-items: center;
+            cursor: pointer;
+            background-color: 
+        }
+        details .details-content {
+            margin: 1em;
+        }
+        details[open].about summary{
+            background: #f0f0f0;
+        }
+        details.about summary:hover{
+            background-color: #f0f0f0;
+        }
+
+
+
+        /* Utilities */
+        .inline-note {
+            color: gray;
+            display: inline-block;
+            margin-left: 1em;
+        }
+        .boxed {
+            border: 1px solid lightgray;
+            margin: 1em 0;
+        }
+
+
+        /* Specific elements */
+        .sticker {
+            border: 1px solid gray;
+            width: 400px;
+            color: gray;
+            padding: 0.5em;
+            margin-left: auto;
+        }
+        td {
+            padding: 0.1em 0.1em;
+        }
+        .summary-header {
+            display: inline-block;
+        }
+
+        #content {
+            max-width: 1020px;
+            margin: auto;
+            padding-top:1em;
+        }
+        .title {
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: gray;
+            text-transform: uppercase;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .disclaimer {
+            margin: 1em 0;
+            font-weight: bold;
+            /* text-align: center; */
+        }
+        .section-container summary>h2 {
+        }
+        .section-container summary {
+            width: 100%;
+            border-bottom: 1px solid black;
+        }
+
+    </style>
+
+    </head>
+    <body>
+        <div id="content">
+
+            <div class="sticker">
+                <table>
+                    <tr>
+                        <td>Sample ID</td>
+                        <td>{{sample_id}}</td>
+                    </tr>
+                    <tr>
+                        <td>Generation Datetime</td>
+                        <td>{{generation_datetime}}</td>
+                    </tr>
+                    <tr>
+                        <td>Report Version</td>
+                        <td>hicdash v0.03</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="subtitle">
+                <span style="color: black">Hi-C Report</span> (hicdash v0.03)
+            </div>
+
+            <h1 class="title">
+                {{sample_id}}
+            </h1>
+
+            <div class="disclaimer">
+                This report is intended for research and development only.
+            </div>
+
+            <details class="boxed about" open>
+            <summary><div class="summary-header">About hicdash</div><span class="inline-note">(click to expand/collapse)</span></summary>
+            <div class="details-content">
+                <p>
+                    This report was generated with <a href="https://github.com/wjmn/hicdash/tree/main">hicdash</a> (v0.03). 
+                </p>
+                <p>
+                    hicdash generates HTML reports from Hi-C data processed using the <a href="https://github.com/ArimaGenomics/Arima-SV-Pipeline">Arima SV Pipeline</a>. 
+                </p>
+                <p>
+                    This HTML report provides a summary of Hi-C results, including:
+                    <ul>
+                        <li>A snapshot of the genome-wide Hi-C matrix.</li>
+                        <li><i>If a QC file is provided,</i> plots of Arima SV Pipeline QC metrics.</li>
+                        <li><i>If a breakpoint file is provided</i>, plots of all breakpoints with involved and nearby genes (<mark>&lt1Mb on strand</mark>).</li>
+                        <li><i>If a list of single targets is provided,</i> observed/expected Hi-C signal genome-wide within <mark>1kb</mark> of the target genes.</li>
+                        <li><i>If a list of dual targets is provided,</i> snapshots of the Hi-C matrix using a <mark>3Mb window</mark> around the dual target genes.</li>
+                    </ul>
+                </p>
+                <p>
+                    This tool expects all data to be aligned to the <b>hg38</b> human reference genome. 
+                </p>
+                <p>
+                    Ensembl v110 gene annotations are used (via pyensembl). 
+                </p>
+                <p>
+                    SV calls are categorized as:
+                    <ul>
+                        <li>Potential gene fusions, if both breakpoint anchors within the coding region of a gene, and the breakpoint orientation resulting in a fusion of two genes with matching directions.</li>
+                        <li><i>If a list of oncogenes is provided</i>, potential regions of interest within <mark>&lt1Mb</mark> of one or more oncogenes.</1mb></li>
+                        <li>Additional findings, where a SV is not classified as above. </li>
+                        <li><i>If a list of false positive regions is provided</i>, flagged calls if they fall within a false positive region.</li>
+                    </ul>
+                </p>
+            </div>
+            </details>
+
+            <details class="section-container" open>
+                <summary><h2>Report Parameters</h2></summary>
+                <div class="details-content">
+                    <table>
+                        <tr>
+                            <td>Sample ID (Prefix)</td>
+                            <td>{{prefix}}</td>
+                        </tr>
+                        <tr>
+                            <td>Hi-C Filepath</td>
+                            <td>{{hic_filepath}}</td>
+                        </tr>
+                        <tr>
+                            <td>QC Filepath</td>
+                            <td>{{qc_filepath}}</td>
+                        </tr>
+                        <tr>
+                            <td>Breakpoints Filepath</td>
+                            <td>{{breakpoints_filepath}}</td>
+                        </tr>
+                        <tr>
+                            <td>Extra BEDPE Annotations</td>
+                            <td>{{extra_bedpe}}</td>
+                        </tr>
+                        <tr>
+                            <td>Extra BigWig Annotations</td>
+                            <td>{{extra_bigwig}}</td>
+                        </tr>
+                        <tr>
+                            <td>Control Hi-C Filepath</td>
+                            <td>{{control_filepath}}</td>
+                        </tr>
+                        <tr>
+                            <td>Key Genes of Interest</td>
+                            <td>{{key_genes}}</td>
+                        </tr>
+                        <tr>
+                            <td>Single Targets</td>
+                            <td>{{targets1}}</td>
+                        </tr>
+                        <tr>
+                            <td>Dual Targets</td>
+                            <td>{{targets2}}</td>
+                        </tr>
+                        <tr>
+                            <td>Output Filepath</td>
+                            <td>{{output_filepath}}</td>
+                        </tr>
+                        <tr>
+                            <td>Generation Datetime</td>
+                            <td>{{generation_datetime}}</td>
+                        </tr>
+                        <tr>
+
+                        </tr>
+                    </table>
+                    <h3>Report Generation Command:</h3>
+                    <pre class="code-block"> <code>
+{{command}}
+                    </code> </pre>
+                </div>
+            </details>
+
+            <details class="section-container" open>
+                <summary><h2>QC Metrics</h2></summary>
+                <div class="details-content"></div>
+            </details>
+
+            <details class="section-container" open>
+                <summary><h2>Hi-C Matrix (Genome-Wide)</h2></summary>
+                <div class="details-content"></div>
+            </details>
+
+
+            <details class="section-container" open>
+                <summary><h2></h2></summary>
+                <div class="details-content"></div>
+            </details>
+
+        </div>
+    </body>
+</html>

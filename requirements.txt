@@ -4,3 +4,4 @@ numpy==1.26.4
 pandas==2.2.2
 pyensembl==2.3.13
 pyBigWig==0.3.22
+Jinja2==3.1.4
