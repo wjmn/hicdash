@@ -857,7 +857,6 @@ def plot_full_matrix(
 # TRACKS
 # -------------------------------------------------------------------------------
 
-
 def plot_gene_track(
     chr: str,
     start: int,
@@ -873,7 +872,12 @@ def plot_gene_track(
     crosshairs: bool=False, 
     plotted_crosshairs: list[tuple[str, int, str, float]]=[],
     centered_names=False,
-    max_arrowhead_width=None,
+    arrowhead_length=None,
+    arrowhead_length_proportion=None,
+    arrowhead_width=None,
+    arrow_length=None,
+    all_same_line=False,
+    show_arrows=True,
 ) -> plt.Axes:
     """Plot a gene track (based on GENE_ANNOTATIONS) for a given range.
 
@@ -936,9 +940,16 @@ def plot_gene_track(
 
     # Use 5 percent as a temporary padding value
     pct_5 = 5 * (end - start) / 100
-    if max_arrowhead_width is None:
-        max_arrowhead_width = (end - start) / 75
+    if arrowhead_length is None:
+        if arrowhead_length_proportion is None:
+            arrowhead_length = (end - start) / 75
+        else:
+            arrowhead_length = (end - start) * arrowhead_length_proportion
     plot_line_width = 0.4
+    if arrowhead_width is None:
+        arrowhead_width = 0.25
+    if arrow_length is None:
+        arrow_length = (end - start) / 50
 
     # Get genes which intersect the center directly
     direct_genes = GENE_ANNOTATIONS.genes_at_locus(
@@ -948,40 +959,58 @@ def plot_gene_track(
 
     for gene in genes:
 
+        exon_width_start = plot_counter - (plot_line_width / 2)
+        exon_width = plot_line_width
         # Plot base arrow indicating strandness
-        arr_start, arr_end = (
-            (gene.start, gene.end - gene.start)
+        arr_start, full_length, arr_length = (
+            (gene.start, gene.end - gene.start, arrow_length)
             if gene.strand == "+"
-            else (gene.end, gene.start - gene.end)
+            else (gene.end, gene.start - gene.end, - arrow_length)
         )
+        safe_start = max(start, gene.start) if gene.strand == "+" else (min(end, gene.end))
+        ec, fc, ls = ("gray", "white", "solid") if (safe_start != arr_start) else ("black", "black", "solid")
+        arr_axis_line = plot_counter+plot_line_width/2 + arrowhead_width/2
         if vertical:
-            ax.arrow(
-                plot_counter,
-                arr_start,
-                0,
-                arr_end,
-                head_width=plot_line_width,
-                head_length=max_arrowhead_width,
-                length_includes_head=False,
-                fc="white",
-            )
+            ax.vlines(plot_counter, gene.start, gene.end, colors="black")
         else:
-            ax.arrow(
-                arr_start,
-                plot_counter,
-                arr_end,
-                0,
-                head_width=plot_line_width,
-                head_length=max_arrowhead_width,
-                length_includes_head=False,
-                fc="white",
-            )
+            ax.hlines(plot_counter, gene.start, gene.end, colors="black")
+        if show_arrows:
+            if vertical:
+                ax.hlines(arr_start, plot_counter, plot_counter+plot_line_width/2, colors="black", ls=":", lw=0.5)
+                ax.hlines(arr_start, plot_counter+plot_line_width/2, arr_axis_line, colors="black", lw=0.5)
+                ax.arrow(
+                    arr_axis_line,
+                    safe_start,
+                    0,
+                    arr_length,
+                    head_width=arrowhead_width,
+                    head_length=arrowhead_length,
+                    length_includes_head=False,
+                    lw=0.5,
+                    ls=ls,
+                    ec=ec,
+                    fc=fc,
+                )
+            else:
+                ax.vlines(arr_start, plot_counter, plot_counter+plot_line_width/2, colors="black", ls=":", lw=0.5)
+                ax.vlines(arr_start, plot_counter+plot_line_width/2, arr_axis_line, colors="black", lw=0.5)
+                ax.arrow(
+                    safe_start,
+                    arr_axis_line,
+                    arr_length,
+                    0,
+                    head_width=arrowhead_width,
+                    head_length=arrowhead_length,
+                    length_includes_head=False,
+                    lw=0.5,
+                    ls=ls,
+                    ec=ec,
+                    fc=fc,
+                )
 
         # Plot each exon as a rectangle on the gene line
         for exon in gene.exons:
             exon_length = exon.end - exon.start
-            exon_width_start = plot_counter - (plot_line_width / 2)
-            exon_width = plot_line_width
             if vertical:
                 ax.add_patch(
                     Rectangle(
@@ -1033,14 +1062,14 @@ def plot_gene_track(
             else:
                 row_position = plot_counter
                 va = "bottom"
-                text_position = gene.start - (pct_5 * 0.25)
-                if gene.strand == "-":
-                    text_position -= max_arrowhead_width
+                text_position = gene.start - (pct_5 * 0.35)
+                # if gene.strand == "-":
+                    # text_position -= arrowhead_length
                 if text_position - pct_5 < ax.get_ylim()[1]:
                     text_position = gene.end + (pct_5 * 0.25)
                     va = "top"
-                    if gene.strand == "+":
-                        text_position += max_arrowhead_width
+                    # if gene.strand == "+":
+                        # text_position += arrowhead_length
                     if text_position + pct_5 > ax.get_ylim()[0]:
                         text_position = ax.get_ylim()[0]
                         va = "bottom"
@@ -1081,13 +1110,13 @@ def plot_gene_track(
                 ha = "right"
                 row_position = plot_counter
                 text_position = gene.start - (pct_5 * 0.25)
-                if gene.strand == "-":
-                    text_position -= max_arrowhead_width
+                # if gene.strand == "-":
+                    # text_position -= arrowhead_length
                 if text_position - pct_5 < ax.get_xlim()[0]:
                     text_position = gene.end + (pct_5 * 0.25)
                     ha = "left"
-                    if gene.strand == "+":
-                        text_position += max_arrowhead_width
+                    # if gene.strand == "+":
+                        # text_position += arrowhead_length
                     if text_position + pct_5 > ax.get_xlim()[1]:
                         text_position = ax.get_xlim()[1]
                         ha = "right"
@@ -1104,7 +1133,8 @@ def plot_gene_track(
                 ).set_clip_on(True)
 
         # Increment plot counter
-        plot_counter += 1
+        if not all_same_line:
+            plot_counter += 1
 
     # Extend the axis limits if centered_gene_names is used
     if centered_names and plot_counter >= min_rows:
@@ -1116,11 +1146,11 @@ def plot_gene_track(
             ax.set_ylim(ymin, ymax + plot_line_width / 2)
 
     # If only a few genes were plotted, then add a bit of space padding to the plot
-    if plot_counter < min_rows:
+    if plot_counter < min_rows and not all_same_line:
         if vertical:
-            ax.set_xlim(min_rows + plot_line_width, 0 - plot_line_width)
+            ax.set_xlim(min_rows + plot_line_width + arrowhead_width/2, 0 - plot_line_width)
         else:
-            ax.set_ylim(0 - plot_line_width, min_rows + plot_line_width)
+            ax.set_ylim(0 - plot_line_width, min_rows + plot_line_width + arrowhead_width/2)
 
     # Add crosshairs if specified
     if crosshairs:
@@ -1144,6 +1174,7 @@ def plot_gene_track(
                     )
 
     return ax
+
 
 
 def plot_coverage_track(
