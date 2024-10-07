@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from numpy.typing import NDArray
 from matplotlib.colors import LinearSegmentedColormap
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from hicstraw import HiCFile
-from hicdash.constants import *
-from hicdash.definitions import *
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar # type: ignore
+from hicstraw import HiCFile # type: ignore
+from hicdash.constants import CHROM_SIZES, CHROMS, CHROM_INDICES, GENE_ANNOTATIONS, MARKER_SIZE_DICT, CHROM_COLORS, BIGWIG_COLORS
+from hicdash.definitions import ArimaPipelineSample, Breakpoint, GenomicRegion, Strand, AssembledHic, PlotRegion
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.ticker import FixedLocator, MultipleLocator
 from hicdash.utilities import *
-import pyBigWig
+import pandas as pd
 import matplotlib
 
 
@@ -32,6 +32,7 @@ def plot_hic_region_matrix(
     normalization="NONE",
     norm_constant_normalize=False,
     ax: plt.Axes | None=None,
+    aspect="auto",
     minimal=False,
     show_breakpoints=True,
     breakpoint_highlight:Breakpoint | None=None, 
@@ -64,6 +65,10 @@ def plot_hic_region_matrix(
     assert regionX.bin_align_res is not None and regionX.bin_align_res % resolution == 0
     assert regionY.bin_align_res is not None and regionY.bin_align_res % resolution == 0
 
+    # Assert that regions must not be reversed
+    assert not regionX.reverse
+    assert not regionY.reverse
+
     # Get plot axis (or get global axis if none provided)
     if ax is None:
         ax = plt.gca()
@@ -95,7 +100,9 @@ def plot_hic_region_matrix(
     centerY = (startY + endY) // 2
 
     # Plot the matrix
-    im = ax.matshow(data, cmap=cmap, vmin=0, vmax=vmax, aspect="auto", extent=[startX, endX, endY, startY])
+    plot_startX, plot_endX = (startX, endX) if not regionX.reverse else (endX, startX)
+    plot_startY, plot_endY = (startY, endY) if not regionY.reverse else (endY, startY)
+    im = ax.matshow(data, cmap=cmap, vmin=0, vmax=vmax, aspect=aspect, extent=[plot_startX, plot_endX, plot_endY, plot_startY])
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
@@ -166,10 +173,18 @@ def plot_hic_region_matrix(
         for bpoint in sample.breakpoints:
             if bpoint.breakendA.chrom == chromX and bpoint.breakendB.chrom == chromY:
                 posX = bpoint.breakendA.pos
+                strandX = bpoint.breakendA.strand
+                bpoint_regionX = bpoint.break_regionA
                 posY = bpoint.breakendB.pos
+                strandY = bpoint.breakendB.strand
+                bpoint_regionY = bpoint.break_regionB
             elif bpoint.breakendB.chrom == chromX and bpoint.breakendA.chrom == chromY:
                 posX = bpoint.breakendB.pos
+                strandX = bpoint.breakendB.strand
+                bpoint_regionX = bpoint.break_regionB
                 posY = bpoint.breakendA.pos
+                strandY = bpoint.breakendA.strand
+                bpoint_regionY = bpoint.break_regionA
             else:
                 continue
                 
@@ -183,20 +198,20 @@ def plot_hic_region_matrix(
 
             # If the breakpoint is within the bounds of the plot, plot it
             if startX <= posX <= endX and startY <= posY <= endY:
-                if show_submatrices and bpoint.break_regionA is not None and bpoint.break_regionB is not None:
-                    rect = Rectangle((bpoint.break_regionA.start, bpoint.break_regionB.start), bpoint.break_regionA.get_size(), bpoint.break_regionB.get_size(), linewidth=0.5, edgecolor=annotation_color, facecolor="none", alpha=alpha,)
+                if show_submatrices and bpoint_regionX is not None and bpoint_regionY is not None:
+                    rect = Rectangle((bpoint_regionX.start, bpoint_regionY.start), bpoint_regionX.get_size(), bpoint_regionY.get_size(), linewidth=0.5, edgecolor=annotation_color, facecolor="none", alpha=alpha,)
                     ax.add_patch(rect)
                 # Match marker based on strandness
-                match bpoint.breakendA.strand:
+                match strandX:
                     case Strand.POS:
-                        markerX = 0
+                        markerX = 0 #tickleft
                     case Strand.NEG:
-                        markerX = 1
-                match bpoint.breakendB.strand:
+                        markerX = 1 #tickright
+                match strandY:
                     case Strand.POS:
-                        markerY = 2
+                        markerY = 2 #tickup
                     case Strand.NEG:
-                        markerY = 3
+                        markerY = 3 #tickdown
                 ax.plot(posX, posY, marker=markerX, color=annotation_color, markersize=size, mew=mew, alpha=alpha,)
                 ax.plot(posX, posY, marker=markerY, color=annotation_color, markersize=size, mew=mew, alpha=alpha,)
                 if crosshairs:
@@ -229,6 +244,7 @@ def plot_hic_chr_context(
     cmap=REDMAP,
     tick_fontsize=10,
     vmax=None,
+    aspect="auto",
 ) -> None:
     """Plots the Hi-C whole-chromosome context for a given sample.
 
@@ -270,7 +286,7 @@ def plot_hic_chr_context(
         vmax_large = vmax
 
     # Plot the large matrix
-    im = ax.matshow(full_matrix, cmap=cmap, vmax=vmax_large, aspect="auto")
+    im = ax.matshow(full_matrix, cmap=cmap, vmax=vmax_large, aspect=aspect)
 
     # Add axis lines to separate the chromosomes
     ax.axhline(top_left.shape[0] - 0.5, color="gray", linewidth=1)
@@ -344,7 +360,7 @@ def plot_hic_chr_context(
 
     # Annotate the resolution of the heatmap
     bin_size = resolution * full_matrix.shape[0] / (CHROM_SIZES[chromA] + CHROM_SIZES[chromB])
-    print(bin_size)
+    # print(bin_size)
     scalebar = AnchoredSizeBar(
         ax.transData,
         bin_size,
@@ -508,7 +524,7 @@ def plot_gene_track(
         if protein_coding_only:
             genes = list(
                 filter(
-                    lambda g: g.biotype == "protein_coding" and g.gene_name != "",
+                    lambda g: g.biotype == "protein_coding",
                     candidates,
                 )
             )
@@ -569,8 +585,6 @@ def plot_gene_track(
     direct_genes_set = set([gene.gene_name for gene in direct_genes])
 
     for gene in genes:
-        if gene.gene_name == "":
-            continue
 
         exon_width_start = plot_counter - (plot_line_width / 2)
         exon_width = plot_line_width
@@ -670,7 +684,7 @@ def plot_gene_track(
                 text= ax.text(
                     plot_counter+plot_line_width/2+arrowhead_width,
                     text_position,
-                    gene.gene_name,
+                    get_gene_name_or_id(gene),
                     ha=ha,
                     va=va,
                     fontsize=fontsize,
@@ -696,7 +710,7 @@ def plot_gene_track(
                 text = ax.text(
                     row_position,
                     text_position,
-                    gene.gene_name,
+                    get_gene_name_or_id(gene),
                     ha="center",
                     va=va,
                     fontsize=fontsize,
@@ -719,7 +733,7 @@ def plot_gene_track(
                 text = ax.text(
                     text_position,
                     plot_counter+plot_line_width/2+arrowhead_width,
-                    gene.gene_name,
+                    get_gene_name_or_id(gene),
                     ha=ha,
                     va=va,
                     fontsize=fontsize,
@@ -744,7 +758,7 @@ def plot_gene_track(
                 text = ax.text(
                     text_position,
                     row_position,
-                    gene.gene_name,
+                    get_gene_name_or_id(gene),
                     ha=ha,
                     va="center",
                     fontsize=fontsize,
@@ -1166,6 +1180,98 @@ def plot_ctcf_track(bedfile: str, region: GenomicRegion, color="seagreen", ax=pl
 
     blank_axis(ax)
 
+def plot_cnv_track(
+        cnv_profile_path: str,
+        cnv_segment_path: str,
+        chr: str,
+        ax=None,
+        vertical=False,
+        cnv_lim: tuple[float,float]=None,
+        linewidth=3,
+        dot_alpha=0.5,
+        dot_size=0.5,
+        plot_scatter=False,
+        plot_segments=True,
+        cnv_res=25000,
+        locus_lim: tuple[int, int]=None,
+        show_zero_line=False,
+):
+
+    # Read
+    columns = ["chr", "start", "end", "value"]
+    df_profile = pd.read_csv(cnv_profile_path, sep="\s+", names=columns)
+    df_segment = pd.read_csv(cnv_segment_path, sep="\s+", names=columns)
+
+    subset_profile = df_profile[(df_profile.chr == chr)]
+    subset_segment = df_segment[(df_segment.chr == chr)]
+
+    # Plot scatter plot of subset_profile
+    positions = subset_profile[subset_profile.value>0].start
+    cnv_values = np.log2(subset_profile[subset_profile.value>0].value)
+
+    cmin = cnv_values.min()
+    cmax = cnv_values.max()
+    cabs = max(abs(cmin), abs(cmax))
+    cmap = LinearSegmentedColormap.from_list('rg',["red", "gray", "green"], N=256)
+    cvalues = [ cmap((v+2) / 4) for v in cnv_values]
+
+    if ax is None:
+        ax = plt.gca()
+
+    if show_zero_line:
+        ax.axhline(0, ls=":", color="gray")
+
+    if plot_scatter:
+        if vertical:
+            ax.scatter(cnv_values, positions, alpha=dot_alpha, c=cvalues, marker=".", s=dot_size, rasterized=True)
+        else:
+            ax.scatter(positions, cnv_values, alpha=dot_alpha, c=cvalues, marker=".", s=dot_size, rasterized=True)
+
+    if plot_segments:
+        minlen = 1
+        res = cnv_res
+        for _, (_, start, end, value) in subset_segment.iterrows():
+            si = start // res
+            ei = end // res
+            if ei - si >= minlen:
+                tmp = subset_profile.value[si:ei]
+                mask = tmp == 0
+                zero_ratio = mask.sum() / mask.size
+                if zero_ratio > 0.80:
+                    continue
+                seg_cnv_value = np.log2(np.median(tmp[tmp!=0]))
+                color=cmap((seg_cnv_value + 2)/4)
+                if vertical:
+                    ax.vlines(seg_cnv_value, start, end, color=color, linewidth=linewidth)
+                else:
+                    ax.hlines(seg_cnv_value, start, end, color=color, linewidth=linewidth)
+
+    if vertical:
+        if locus_lim is not None:
+            ax.set_ylim(*locus_lim)
+        else:
+            ax.set_ylim(0, CHROM_SIZES[chr])
+        ax.set_yticks([])
+        ax.set_xlabel("$\log_2$(CN)")
+        if cnv_lim is not None:
+            ax.set_xlim(*cnv_lim)
+    else:
+        if locus_lim is not None:
+            ax.set_xlim(*locus_lim)
+        else:
+            ax.set_xlim(0, CHROM_SIZES[chr])
+        ax.set_xticks([])
+        ax.set_ylabel("$\log_2$(CN)")
+        if cnv_lim is not None:
+            ax.set_ylim(*cnv_lim)
+
+    if vertical:
+        ax.invert_yaxis()
+        ax.invert_xaxis()
+
+    return ax
+
+
 def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Axes=None, vmax: float | None =None, aspect="equal", rasterized=False, cmap=REDMAP, ):
 
     data = assembled.data
@@ -1500,7 +1606,7 @@ def plot_composite_context_and_zoom(
     bpoint: Breakpoint,
     figsize=(11, 6.3),
     zoom_resolution=10000,
-    zoom_radius=250000,
+    zoom_radius=300000,
     gene_filter=None,
     title=None,
     title_fontsize=8,
@@ -1513,6 +1619,7 @@ def plot_composite_context_and_zoom(
     crosshairs=False,
     grid=False,
     plot_at_bpoint_resolution=False,
+    capped_resolution=None,
     min_gene_rows=3,
     centered_gene_names=False,
     keygenes: list[str]=[],
@@ -1576,13 +1683,17 @@ def plot_composite_context_and_zoom(
 
     # Plot zoomed hic matrix first to get axis bounds
     if plot_at_bpoint_resolution:
-        zoom_resolution = bpoint.resolution
-        zoom_radius = 25 * zoom_resolution
+        if capped_resolution is not None:
+            zoom_resolution = max(bpoint.resolution, capped_resolution)
+            zoom_radius = 30 * zoom_resolution
+        else:
+            zoom_resolution = bpoint.resolution
+            zoom_radius = 30 * zoom_resolution
 
     regionX, regionY = bpoint.get_centered_regions_with_radius(radius=zoom_radius, bin_align_res=zoom_resolution)
     involved_genes = [g.gene_name for g in bpoint.breakendA.get_intersecting_genes() + bpoint.breakendB.get_intersecting_genes()]
 
-    _ = plot_hic_region_matrix(
+    plot_hic_region_matrix(
         sample, 
         regionX, 
         regionY,  
@@ -1610,7 +1721,7 @@ def plot_composite_context_and_zoom(
 
     # Plot chromosome context
 
-    _ = plot_hic_chr_context(
+    plot_hic_chr_context(
         sample,
         chrA,
         chrB,
@@ -1739,7 +1850,7 @@ def plot_composite_multires_breakpoint(
         chrB, posB = bpoint.breakendB.chrom, bpoint.breakendB.pos
         zoom_resolution=bpoint.resolution
 
-        _ = plot_hic_region_matrix(
+        plot_hic_region_matrix(
             sample,
             regionX, 
             regionY,
@@ -1770,7 +1881,7 @@ def plot_composite_compare_two(
     sample1: ArimaPipelineSample,
     sample2: ArimaPipelineSample,
     bpoint: Breakpoint,
-    figsize=(11, 6.3),
+    figsize=(7.7, 4.3),
     resolution=50000,
     radius=3000000,
     gene_filter=None,
@@ -1817,7 +1928,7 @@ def plot_composite_compare_two(
         
 
     # Plot zoomed hic matrices in each center plot
-    _ = plot_hic_region_matrix(
+    plot_hic_region_matrix(
         sample1,
         regionX, 
         regionY,
@@ -1827,7 +1938,7 @@ def plot_composite_compare_two(
         norm_constant_normalize=True,
         vmax=vmax,
     )
-    _ = plot_hic_region_matrix(
+    plot_hic_region_matrix(
         sample2,
         regionX, 
         regionY,
@@ -1850,7 +1961,7 @@ def plot_composite_compare_two(
     divider.xaxis.set_visible(False)
     divider.yaxis.set_visible(False)
 
-    ax1_top.set_title(sample1.id + "\n")
+    ax1_top.set_title(sample1.id, fontweight="bold")
     ax2_top.set_title(sample2.id + " [Control]", color="gray")
     ax1_center.text(0.05, 0.88, "(normed / 1M Hi-C reads)", transform=ax1_center.transAxes, fontsize=7, va="top", ha="left")
     ax2_center.text(0.05, 0.88, "(normed / 1M Hi-C reads)", transform=ax2_center.transAxes, fontsize=7, va="top", ha="left")
@@ -1974,3 +2085,123 @@ def plot_composite_triangle(
         ax_coverage.spines[["top"]].set_linewidth(0.5)
         
     return fig
+
+
+def plot_pseudotarget_hic_dual(
+    sample: ArimaPipelineSample,
+    geneA_name: str,
+    geneB_name: str,
+    figsize=(2,2),
+    resolution=100000,
+    radius=25*100000,
+):
+    fig, ax = plt.subplots(2, 2, figsize=figsize, width_ratios=[1, 8], height_ratios=[1, 8])
+    fig.subplots_adjust(wspace=0.01, hspace=0.01)
+
+    ax_gene_top = ax[0, 1]
+    ax_gene_left = ax[1, 0]
+    ax_hic = ax[1, 1]
+    ax_corner = ax[0,0]
+    blank_axis(ax_corner)
+
+    try:
+        geneA = GENE_ANNOTATIONS.genes_by_name(geneA_name)[0]
+        geneB = GENE_ANNOTATIONS.genes_by_name(geneB_name)[0]
+    except ValueError:
+        blank_axis(ax_hic)
+        blank_axis(ax_gene_top)
+        blank_axis(ax_gene_left)
+        ax_hic.text(0.5, 0.5, f"Invalid Gene Names:\n{geneA_name} & {geneB_name}", transform=ax_hic.transAxes)
+        return fig
+
+    chromA = chr_prefix(geneA.contig)
+    posA = (geneA.start + geneA.end) // 2
+    chromB = chr_prefix(geneB.contig)
+    posB = (geneB.start + geneB.end) // 2
+
+
+    regionX = GenomicRegion(chromA, posA-radius, posA+radius, bin_align_res=resolution)
+    regionY = GenomicRegion(chromB, posB-radius, posB+radius, bin_align_res=resolution)
+
+    plot_hic_region_matrix(sample, regionX, regionY, resolution, ax=ax_hic, minimal=True, show_breakpoints=False, vmax=int(sample.norm_constant))
+    ax_hic.set_xlabel("")
+    ax_hic.set_ylabel("")
+    ax_hic.text(0.02, 0.8, "(capped)", transform=ax_hic.transAxes, fontsize=7)
+
+    plot_gene_track(regionX, gene_filter=[geneA_name], ax=ax_gene_top, min_rows=0, all_same_line=True, fontsize=10)
+    plot_gene_track(regionY, gene_filter=[geneB_name], ax=ax_gene_left, min_rows=0, all_same_line=True, fontsize=10, vertical=True)
+
+    return fig
+
+
+
+def plot_pseudotarget_hic_single(
+    sample: ArimaPipelineSample,
+    gene_name: str,
+    resolution=500000,
+    threshold=100,
+):
+
+
+    fig, ax = plt.subplots(figsize=(8, 0.25,))
+    try:
+        gene = GENE_ANNOTATIONS.genes_by_name(gene_name)[0]
+    except ValueError:
+        blank_axis(ax)
+        ax.text(0.5, 0.5, f"Invalid gene name: {gene_name}", transform=ax.transAxes)
+        return fig
+        
+    chrom = chr_prefix(gene.contig)
+    width = resolution
+    start = gene.start - width
+    end = gene.end + width
+    region = GenomicRegion(chrom, start, end)
+
+    values = sample.get_genome_wide_virtual_4c_at_locus(region, resolution, measure="oe")
+    
+    # Pull all chromosomes together
+    y_values = np.concatenate([ v for _, v in values ])
+    # ax[i].plot(y_values, color="black")
+
+    # Add lines for each chromosome boundary
+    cumsum = 0 
+    for j, (_, data) in enumerate(values):
+        cumsum += len(data)
+        ax.axvline(cumsum, color="#eee", lw=1)
+    ax.set_yticks([])
+
+    # Add chromosomes to x axis
+    cumsum = 0 
+    xlabel_pos = []
+    xlabels = []
+    for j, (chr_name, data) in enumerate(values):
+        if chr_name == chrom:
+            gene_pos = (gene.start + gene.end) / 2
+            gene_pos = len(data) * gene_pos / CHROM_SIZES[chr_name]
+            ax.scatter(cumsum + gene_pos, 1, color="gray", marker="+")
+        rect = Rectangle((cumsum, 0), len(data), 2, fc=CHROM_COLORS[chr_name], ec="none", alpha=0.08)
+        ax.add_patch(rect)
+        cumsum += len(data)
+        xlabel_pos.append(cumsum - len(data)//2)
+        xlabels.append(chr_unprefix(chr_name))
+
+    # Scatterplot, and if the value is above 100, color it red
+    positive = False
+    positive = any(v > threshold for v in y_values) > 0
+    colors = ["red" if v > threshold else "black" for v in y_values]
+    sizes = [20 if v > threshold else 0 for v in y_values]
+    ypos = [ 1 if v > threshold else 0 for v in y_values]
+    ax.scatter(range(len(y_values)), ypos, color=colors, s=sizes)
+    # ax[i].scatter((anchor_gene.start+anchor_gene.end)/2, 1, color="green", s=20, alpha=0.5)
+    ax.set_ylim(0, 2)
+    # ax[i].imshow(np.expand_dims(y_values, axis=0), cmap=REDMAP, vmin=0, vmax=threshold*2, aspect="auto")
+
+    ylabel_color = "crimson" if positive else "black"    
+    ylabel_weight = "bold" if positive else "normal"
+    ax.set_ylabel(gene_name, rotation=0, va="center", ha="right", color=ylabel_color, fontsize=14, fontweight=ylabel_weight)
+
+    ax.set_xticks(xlabel_pos, xlabels, rotation=0, ha="center", va="top", fontsize=7)
+    ax.set_xlim(0, cumsum)
+
+    return fig, positive
+

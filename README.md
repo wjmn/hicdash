@@ -69,10 +69,6 @@ Here are the command line arguments:
 | `--output` | Required | The path to the file you wish to output the report to (include the .html extension) |
 | `--breaks` | Optional | The path to the .breaks.bedpe file output from the Arima-SV pipeline containing hic_breakfinder calls. | 
 | `--qc` | Optional | The path to the deep quality control .txt file output from the Arima-SV pipeline. |
-| `--bedpe` | Optional | Filepath(s) (comma-delimited) to any extra 2D annotations to plot (in 6-column bedpe format). |
-| `--bigwig` | Optional | Filepath(s) (comma-delimited) to any extra 1D tracks to plot (in bigwig format). |
-| `--crosshairs` | Optional | Plot crosshairs at breakpoints on plots (default is False). |
-| `--grid` | Optional | Plot a grid (gridlines at bin boundaries) on zoomed breakpoint plots (default is False). |
 | `--control` | Optional | The path to a control .hic file, which will be used for visual plot comparisons. |
 
 While the `--qc`, `--breaks` and `--control` arguments are optional, they are highly recommended. The report won't be very useful without these outputs. 
@@ -80,6 +76,17 @@ While the `--qc`, `--breaks` and `--control` arguments are optional, they are hi
 The breaks provided in `--breaks` are sorted in chromosome order. 
 
 If extra `--bedpe` file(s) are specified, they are simply added as annotations to breakpoints provided by the `--breaks` argument: no merging is done in this package. Use `--breaks` to provide the full set of breakpoints that you wish to plot. 
+
+## Development
+
+### Testing
+
+To run the unittests:
+
+```bash
+cd src
+python -m unittest
+```
 
 ## Changelog
 

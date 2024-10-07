@@ -7,7 +7,7 @@ Currently these constants restrict report generation to:
 To be reviewed at a later stage. 
 """
 
-import pyensembl
+import pyensembl # type: ignore
 
 # -------------------------------------------------------------------------------
 # HUMAN CHROMOSOMES (hg38)

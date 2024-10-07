@@ -29,16 +29,45 @@
             padding: 0.5em;
             align-items: center;
             cursor: pointer;
-            background-color: 
         }
         details .details-content {
             margin: 1em;
         }
-        details[open].about summary{
+        details[].about summary{
             background: #f0f0f0;
         }
         details.about summary:hover{
             background-color: #f0f0f0;
+        }
+        figure {
+           max-width: 100%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+        }
+
+        figure img {
+            max-width: 100%;
+        }
+
+        table {
+              width: 100%;
+        }
+        td {
+           outline: 1px solid #eaeaea;
+        }
+
+        pre {
+             background: #ececec;
+             padding: 0 1rem;
+            white-space: pre-wrap;
+            white-space: -moz-pre-wrap
+            white-space: -pre-wrap;
+            white-space: -o-pre-wrap;
+            word-wrap: break-word;
+        }
+        code {
+             font-family: "Cascadia Code", "Consolas", monospace;
         }
 
 
@@ -53,6 +82,10 @@
             border: 1px solid lightgray;
             margin: 1em 0;
         }
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
 
 
         /* Specific elements */
@@ -63,6 +96,9 @@
             padding: 0.5em;
             margin-left: auto;
         }
+        .sticker td {
+                 outline: none;
+        } 
         td {
             padding: 0.1em 0.1em;
         }
@@ -89,11 +125,64 @@
             font-weight: bold;
             /* text-align: center; */
         }
-        .section-container summary>h2 {
+        .section-container > summary>h2 {
         }
-        .section-container summary {
+        .section-container > summary {
             width: 100%;
-            border-bottom: 1px solid black;
+            border-bottom: 1px solid #aaa;
+        }
+        .large-heading {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        .finding-container {
+            border: 1px solid #e5e7eb;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            margin: 0.5em 0;
+        }
+        .finding-container summary {
+            display: flex;
+            justify-content: space-between;
+            background: #f3f4f6;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .finding-container > summary > h3 {
+            margin: 0;
+        }
+        span.gene {
+           border: 2px solid gray;
+           border-radius: 1px;
+           padding: 2px 4px;
+           margin: 2px 2px;
+           display: inline-block;
+        }
+        span.gene.involved {
+           font-weight: bold;
+           border-color: black;
+        }
+        span.gene.key {
+           background: #fef9c3;
+        }
+
+        .finding-left span.gene {
+           border: none;
+           margin: 0;
+           padding: 0;
+           display: inline;
+        }
+        .finding-left span.gene.key {
+           background: inherit;
+        }
+
+        .single-target-image-group {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          }
+        .dual-target-image-group {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
         }
 
     </style>
@@ -131,7 +220,7 @@
                 This report is intended for research and development only.
             </div>
 
-            <details class="boxed about" open>
+            <details class="boxed about" >
             <summary><div class="summary-header">About hicdash</div><span class="inline-note">(click to expand/collapse)</span></summary>
             <div class="details-content">
                 <p>
@@ -145,9 +234,9 @@
                     <ul>
                         <li>A snapshot of the genome-wide Hi-C matrix.</li>
                         <li><i>If a QC file is provided,</i> plots of Arima SV Pipeline QC metrics.</li>
-                        <li><i>If a breakpoint file is provided</i>, plots of all breakpoints with involved and nearby genes (<mark>&lt1Mb on strand</mark>).</li>
-                        <li><i>If a list of single targets is provided,</i> observed/expected Hi-C signal genome-wide within <mark>1kb</mark> of the target genes.</li>
-                        <li><i>If a list of dual targets is provided,</i> snapshots of the Hi-C matrix using a <mark>3Mb window</mark> around the dual target genes.</li>
+                        <li><i>If a breakpoint file is provided</i>, plots of all breakpoints with involved and nearby genes (&lt1Mb on strand).</li>
+                        <li><i>If a list of single targets is provided,</i> observed/expected Hi-C signal genome-wide within 500kb of the target genes (at 500kb resolution)</li>
+                        <li><i>If a list of dual targets is provided,</i> snapshots of the Hi-C matrix using a 5Mb window around the dual target genes.</li>
                     </ul>
                 </p>
                 <p>
@@ -168,7 +257,7 @@
             </div>
             </details>
 
-            <details class="section-container" open>
+            <details class="section-container" >
                 <summary><h2>Report Parameters</h2></summary>
                 <div class="details-content">
                     <table>
@@ -231,20 +320,110 @@
                 </div>
             </details>
 
-            <details class="section-container" open>
+            <details class="section-container" >
                 <summary><h2>QC Metrics</h2></summary>
-                <div class="details-content"></div>
+                <div class="details-content">
+                    <p>
+                        These quality control metrics are directly emitted by the Arima SV Pipeline. </p>
+                    <p>Many of these metrics are library-specific; if unsure about the quality of the sample, seek advice. 
+                    </p>
+                    <figure>
+                        <img src="data:image/png;base64,{{base64_figure_qc}}" />
+                    </figure>
+                </div>
             </details>
 
-            <details class="section-container" open>
+            <details class="section-container" >
                 <summary><h2>Hi-C Matrix (Genome-Wide)</h2></summary>
-                <div class="details-content"></div>
+                <div class="details-content">
+                    <p>Thie plot shows the genome-wide Hi-C matrix for this sample at 2.5Mb resolution</p>
+                    <p>The color scale is capped at the square root of the maximum bin value.</p>
+                    <p>If breakpoints have been supplied, these are circled in the lower left triangle of this plot (note that the genome-wide Hi-C matrix is symmetrical about the diagonal axis; the upper right triangle and the lower left triangle are simply mirror images of each other)</p>
+                    <figure>
+                        <img src="data:image/png;base64,{{base64_figure_full_hic}}" />
+                    </figure>
+                </div>
+            </details>
+
+
+            <h1 class="large-heading">Breakpoints</h1>
+            <details class="section-container" open>
+                <summary><h2>Possible Gene Fusions</h2></summary>
+                <div class="details-content">
+                    
+                    {% for rendered in rendered_results_gene_fusion %}
+                        {{rendered}}
+                    {% endfor %}
+
+
+                </div>
+            </details>
+
+            <details class="section-container" open>
+                <summary><h2>Near Key Genes</h2></summary>
+                <div class="details-content">
+
+                    {% for rendered in rendered_results_near_keygenes %}
+                        {{rendered}}
+                    {% endfor %}
+                
+                </div>
             </details>
 
 
             <details class="section-container" open>
-                <summary><h2></h2></summary>
-                <div class="details-content"></div>
+                <summary><h2>Additional Findings</h2></summary>
+                <div class="details-content">
+                
+
+                    {% for rendered in rendered_results_additional %}
+                        {{rendered}}
+                    {% endfor %}
+
+                </div>
+            </details>
+
+            {% if rendered_results_flagged %}
+            <details class="section-container" open>
+                <summary><h2>Flagged in False Positive Regions</h2></summary>
+                <div class="details-content">
+                
+
+                    {% for rendered in rendered_results_flagged %}
+                        {{rendered}}
+                    {% endfor %}
+
+                </div>
+            </details>
+            {% endif %}
+
+
+            <h1 class="large-heading">Pseudotargeted</h1>
+
+            <details class="section-container" >
+                <summary><h2>Single-Target</h2> (note: experimental feature)</summary>
+                <div class="details-content single-target-image-group">
+                
+                    {% for base64 in base64_list_single_target %}
+                        <figure>
+                            <img src="data:image/png;base64,{{base64}}" />
+                        </figure>
+                    {% endfor %}
+                    
+                </div>
+            </details>
+
+            <details class="section-container" >
+                <summary><h2>Dual-Target</h2> (note: experimental feature)</summary>
+                <div class="details-content dual-target-image-group">
+                
+                     {% for base64 in base64_list_dual_target %}
+                        <figure>
+                            <img src="data:image/png;base64,{{base64}}" />
+                        </figure>
+                    {% endfor %}
+                                
+                </div>
             </details>
 
         </div>

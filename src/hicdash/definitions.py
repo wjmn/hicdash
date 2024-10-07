@@ -10,12 +10,12 @@ from typing import Any
 from enum import Enum
 from dataclasses import dataclass, replace
 from typing_extensions import Self
-from hicstraw import HiCFile
+from hicstraw import HiCFile # type: ignore
 from numpy.typing import NDArray
 import pandas as pd
 import numpy as np
 from io import StringIO
-import pyensembl
+import pyensembl # type: ignore
 
 from hicdash.constants import CHROM_INDICES, CHROM_SIZES, BREAKFINDER_COLUMNS, BEDPE_COLUMNS, GENE_ANNOTATIONS, CHROMS
 from hicdash.utilities import chr_prefix, chr_unprefix, is_protein_coding, resolution_to_int, read_hic
@@ -1174,4 +1174,22 @@ class ArimaPipelineSample:
             plot_regions = plot_regions
         )
 
+    def get_genome_wide_virtual_4c_at_locus(self, region: GenomicRegion, resolution: int, norm="NONE", measure="oe") -> list[tuple[str, NDArray]]:
+        """Return genome-wide Hi-C for a region (virtual 4C), taking the mean of the values in the region width."""
+        all_values = []
+
+        chr = region.chrom
+        start = region.start
+        end = region.end 
+        
+        # Assemble for each chromosome
+        for chr_partner in CHROMS:
+            if chr_partner == "chrY":
+                continue
+            regionX = GenomicRegion(chr_partner, 0, CHROM_SIZES[chr_partner])
+            data = self.get_hic_direct_data(regionX, region, resolution=resolution, normalization=norm, measure=measure)
+            data = data.mean(axis=0)
+            all_values.append((chr_partner, data))
+
+        return all_values
 

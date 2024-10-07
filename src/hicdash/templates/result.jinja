@@ -1,0 +1,63 @@
+<details class="finding-container" >
+    <summary>
+        {% if geneA and geneB %}
+            <h3 class="finding-left"><span class="gene involved">{{geneA}}::{{geneB}}</span></h3>
+            <div class="finding-right">{{regionA}}::{{regionB}}</div>
+        {% elif keyNearA and keyNearB %}
+            <h3 class="finding-left">(Near <span class="gene key">{{keyNearA}}</span>)::(Near <span class="gene key">{{keyNearB}}</span>)</h3>
+            <div class="finding-right">{{regionA}}::{{regionB}}</div>
+        {% elif keyNearA %}
+            <h3 class="finding-left">(Near <span class="gene key">{{keyNearA}}</span>)::{{regionB}}</h3>
+            <div class="finding-right">{{regionA}}::{{regionB}}</div>
+        {% elif keyNearB %}
+            <h3 class="finding-left">{{regionA}}::(Near <span class="gene key">{{keyNearB}}</span>)</h3>
+            <div class="finding-right">{{regionA}}::{{regionB}}</div>
+        {% else %}
+            <h3 class="finding-left">{{regionA}}::{{regionB}}</h3>
+        {% endif %}
+    </summary>
+    <div class="details-content">
+        <div class="two-column">
+            <div>
+                <div>
+                    <p>Genes near {{regionA}}:</p>
+                    <p>
+                        <ul><li>
+                            {% for gene in nearbyGenesA %}
+                            <span class="gene {{'involved' if gene.is_involved else ''}} {{'key' if gene.is_key else ''}}">
+                                {{gene.name}}
+                            </span>
+                            {% endfor %}
+                        </li>
+                    </p>
+                </div>
+                <div>
+                    <p>Genes near {{regionB}}:</p>
+                        <ul><li>
+                            {% for gene in nearbyGenesB %}
+                            <span class="gene {{'involved' if gene.is_involved else ''}} {{'key' if gene.is_key else ''}}">
+                                {{gene.name}}
+                            </span>
+                            {% endfor %}
+                        </li>
+                    <p>
+                    </p>
+                </div>
+            </div>
+            <figure>
+                <img src="data:image/png;base64,{{base64_figure_triangle}}"/>
+            </figure>
+        </div>
+        <figure>
+            <img  src="data:image/png;base64,{{base64_figure_zoom}}"/>
+        </figure>
+        <figure>
+            <img src="data:image/png;base64,{{base64_figure_multires}}"/>
+        </figure>
+        {% if base64_figure_comparison %}
+        <figure>
+            <img  src="data:image/png;base64,{{base64_figure_comparison}}"/>
+        </figure>
+        {% endif %}
+    </div>
+</details>

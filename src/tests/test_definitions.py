@@ -127,7 +127,7 @@ class TestGenomicRegion(unittest.TestCase):
 
     def test_get_reverse(self):
         gregion_original = GenomicRegion("chr8", 126894839, 128498283, bin_align_res=25000)
-        gregion = gregion_original.get_reverse()
+        gregion = gregion_original.get_reverse_true()
         self.assertEqual(gregion.chrom, "chr8")
         self.assertEqual(gregion.start, 126875000)
         self.assertEqual(gregion.end, 128500000)
