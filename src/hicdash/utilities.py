@@ -1,6 +1,9 @@
 """Very basic package-wide utility functions for e.g. simple unit conversions.
 """
 
+import matplotlib.pyplot as plt
+import pyensembl
+from hicstraw import HiCFile
 
 def chr_unprefix(chr_string: str) -> str:
     """Remove the "chr" prefix from a chromosome string.
@@ -42,6 +45,18 @@ def resolution_to_int(suffixed_str: str | int) -> int:
     else:
         return int(float(suffixed_str))
 
+def is_protein_coding(gene: pyensembl.Gene):
+    return gene.biotype == "protein_coding"
+
+def get_gene_name_or_id(gene: pyensembl.Gene):
+    if gene.gene_name == "":
+        return gene.gene_id
+    return gene.gene_name
+
+def is_ig_gene(gene: pyensembl.Gene):
+    return (gene.biotype == "IG_V_gene" or gene.biotype == "IG_D_gene" or gene.biotype == "IG_J_gene" or gene.biotype == "IG_C_gene")
+
+
 def int_to_resolution(resolution: int) -> str:
     """Convert an int resolution into a suffixed with either "kb" or "Mb".
 
@@ -49,26 +64,23 @@ def int_to_resolution(resolution: int) -> str:
 
     """
     if resolution >= 1000000:
-        return f"{resolution // 1000000}Mb"
+        if resolution % 1000000 == 0:
+            return f"{resolution // 1000000}Mb"
+        else:
+            return f"{resolution / 1000000:.1f}Mb"
     elif resolution >= 1000:
         return f"{resolution // 1000}kb"
     else:
         return f"{resolution}b"
 
-def get_bin_extent(start: int, end: int, resolution: int) -> tuple[int, int]:
-    """Gives the "true" start and end points aligned to resolution bins. 
-
-    The "true" start and end points refer to the start of the bin
-    containing the given start argument, and the end of the bin containing
-    the given end argument (i.e. the start of the bin after the bin 
-    containing the end argument). 
-
-    If "end" is exactly on a bin border, then it considers the true end to 
-    be the end of the bin just before the bin containing the end argument. 
-    (hence a -1 correction here). 
+def read_hic(hic_file: str) -> HiCFile:
+    """Read Hi-C file and return a HiCFile object.
+    
+    This is just a convenience wrapper for now, to be revised. 
     """
+    return HiCFile(hic_file)
 
-    trueStart = start // resolution * resolution
-    trueEnd = ((end - 1) + resolution) // resolution * resolution 
-
-    return (trueStart, trueEnd)
+def blank_axis(ax: plt.Axes):
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.spines[['top', 'right', 'left', 'bottom']].set_visible(False)

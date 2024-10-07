@@ -1,2 +1,4 @@
 __pycache__
 example_data
+.mypy_cache
+settings.json
