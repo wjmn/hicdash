@@ -45,15 +45,15 @@ def resolution_to_int(suffixed_str: str | int) -> int:
     else:
         return int(float(suffixed_str))
 
-def is_protein_coding(gene: pyensembl.Gene):
+def is_protein_coding(gene: pyensembl.Gene) -> bool:
     return gene.biotype == "protein_coding"
 
-def get_gene_name_or_id(gene: pyensembl.Gene):
+def get_gene_name_or_id(gene: pyensembl.Gene) -> str:
     if gene.gene_name == "":
         return gene.gene_id
     return gene.gene_name
 
-def is_ig_gene(gene: pyensembl.Gene):
+def is_ig_gene(gene: pyensembl.Gene) -> bool:
     return (gene.biotype == "IG_V_gene" or gene.biotype == "IG_D_gene" or gene.biotype == "IG_J_gene" or gene.biotype == "IG_C_gene")
 
 
