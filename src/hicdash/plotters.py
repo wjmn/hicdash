@@ -1162,7 +1162,7 @@ def plot_ctcf_track(bedfile: str, region: GenomicRegion, color="seagreen", ax=pl
         if vertical:
             ax.invert_yaxis()
         else:
-            ax.invert_axis()
+            ax.invert_xaxis()
 
     blank_axis(ax)
 
