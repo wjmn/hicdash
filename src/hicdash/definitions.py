@@ -623,7 +623,7 @@ class Breakpoint:
             genesB_forward, genesB_backward = genesB_backward, genesB_forward
 
         possible_fusions_forward = [  (geneA, geneB) for geneA in genesA_forward for geneB in genesB_forward ]
-        possible_fusions_backward = [  (geneA, geneB) for geneA in genesA_backward for geneB in genesB_backward ]
+        possible_fusions_backward = [  (geneB, geneA) for geneA in genesA_backward for geneB in genesB_backward ]
 
         return possible_fusions_forward + possible_fusions_backward
 
