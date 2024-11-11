@@ -43,17 +43,19 @@ You may also need to run `pyensembl install --release 110 --species homo_sapiens
 Here's an example of running `hicdash` with all the command line options (though you probably don't need all of them at once):
 
 ```bash
+
 python -m hicdash \
-    --prefix EXAMPLE \
-    --qc /home/wjmn/repos/hicdash/example_data/EXAMPLE_v1.3_Arima_QC_deep.txt \
-    --hic /home/wjmn/repos/hicdash/example_data/EXAMPLE_inter_30.hic \
-    --breaks /home/wjmn/repos/hicdash/example_data/EXAMPLE.short.bedpe \
-    --bedpe /home/wjmn/repos/hicdash/example_data/EXAMPLE.eaglec.bedpe,/home/wjmn/repos/hicdash/example_data/EXAMPLE.neoloops.bedpe \
-    --bigwig /home/wjmn/repos/hicdash/example_data/EXAMPLE.h3k27ac.bigwig,/home/wjmn/repos/hicdash/example_data/EXAMPLE.ctcf.bigwig \
-    --crosshairs \
-    --grid \
-    --control /home/wjmn/repos/hicdash/example_data/COMPARISON_inter_30.hic \
-    --output example.html 
+    --prefix K562 \
+    --hic tests/example_data/K562_inter_30.hic \
+    --output tests/example_data/K562_report.html \
+    --qc tests/example_data/K562_v1.3_Arima_QC_deep.txt \
+    --breaks tests/example_data/K562_curated_breakpoints.bedpe \
+    --control tests/example_data/GM12878_inter_30.hic \
+    --keygenes tests/example_data/keygenes.txt  \
+    --targets1 tests/example_data/targets1.txt \
+    --targets2 tests/example_data/targets2.txt \
+    --flagged tests/example_data/flagged.txt
+
 ```
 
 (example data is not included with this repo, so make sure to replace the arguments above with paths to your data)
