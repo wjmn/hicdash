@@ -47,8 +47,8 @@ def make_gene_dicts(bpoint: Breakpoint, radius=1000000, keygenes=[], is_protein_
     """
     
     regionA, regionB = bpoint.get_reconstructed_regions_with_radius(radius=radius)
-    genesA = sorted(regionA.get_contained_genes(), key=lambda x: abs(x.start - bpoint.breakendA.pos))
-    genesB = sorted(regionB.get_contained_genes(), key=lambda x: abs(x.start - bpoint.breakendB.pos))
+    genesA = sorted(regionA.get_contained_genes(), key=lambda x: 0 if (x.start < bpoint.breakendA.pos < x.end) else min(abs(x.start - bpoint.breakendA.pos), abs(x.end - bpoint.breakendA.pos)))
+    genesB = sorted(regionB.get_contained_genes(), key=lambda x: 0 if (x.start < bpoint.breakendB.pos < x.end) else min(abs(x.start - bpoint.breakendB.pos), abs(x.end - bpoint.breakendB.pos)))
 
     intersectA = set(s.gene_name for s in bpoint.breakendA.get_intersecting_genes())
     intersectB = set(s.gene_name for s in bpoint.breakendB.get_intersecting_genes())
