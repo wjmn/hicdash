@@ -151,6 +151,15 @@
         .finding-container > summary > h3 {
             margin: 0;
         }
+
+        .warning {
+            border-left: 0.5rem solid #ea580c;
+            margin: 1rem 0 1rem 0;
+            background: #fff7ed;
+            padding: 1rem;
+            color: #431407;
+        }
+        
         span.gene {
            border: 2px solid gray;
            border-radius: 1px;
@@ -350,6 +359,19 @@
             <details class="section-container" open>
                 <summary><h2>Inferred Gene Fusion Candidates</h2></summary>
                 <div class="details-content">
+
+                    <div class="warning">
+
+                    <b>IMPORTANT</b>: Gene fusion candidates in this report are
+                    <i>inferred</i> from structural variants on the basis of
+                    rearrangement breakpoints occurring within genes on each
+                    partner and producing assemblies flowing from 5' to 3' on
+                    each gene.  These candidates purely reflect <i>genomic</i>
+                    findings and do </i>not</i> necessarily imply a
+                    functional chimeric fusion transcript. These findings should not be 
+                    interpreted in isolation. 
+
+                    </div>
                     
                     {% for rendered in rendered_results_gene_fusion %}
                         {{rendered}}
