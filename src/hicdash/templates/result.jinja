@@ -1,7 +1,7 @@
 <details class="finding-container" >
     <summary>
         {% if geneA and geneB %}
-            <h3 class="finding-left"><span class="gene involved">{{geneA}}::{{geneB}}</span></h3>
+            <h3 class="finding-left"><span class="gene involved">{{geneA}}(::){{geneB}}</span></h3>
             <div class="finding-right">{{regionA}}::{{regionB}}</div>
         {% elif keyNearA and keyNearB %}
             <h3 class="finding-left">(Near <span class="gene key">{{keyNearA}}</span>)::(Near <span class="gene key">{{keyNearB}}</span>)</h3>
