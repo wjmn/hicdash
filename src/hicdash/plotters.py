@@ -2029,7 +2029,7 @@ def plot_composite_triangle(
 
     ax_triangle = fig.add_subplot(gs[0, :])
     if vmax is None:
-        vmax = np.nanmax(assembled.data) / 4
+        vmax = np.nanmax(assembled.data) / 8
     plot_assembled_triangle(assembled, resolution, ax=ax_triangle, vmax=vmax, rasterized=True, aspect="auto",)
     ax_triangle.set_ylabel(sample.id, rotation=90, ha="center", va="center")
 
