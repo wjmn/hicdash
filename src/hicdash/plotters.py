@@ -45,6 +45,8 @@ def plot_hic_region_matrix(
     grid=False,
     crosshairs=False,
     show_submatrices=False,
+    mew=None,
+    marker_size=None,
 ) -> None:
     """Plots a specified Hi-C region.
 
@@ -189,9 +191,9 @@ def plot_hic_region_matrix(
                 continue
                 
             alpha = 1
-            size = MARKER_SIZE_DICT[resolution]
-            mew=size / 5
-            if breakpoint_highlight is not None and bpoint != breakpoint_highlight:
+            size = MARKER_SIZE_DICT[resolution] if marker_size is None else marker_size
+            mew=size / 5 if mew is None else mew
+            if breakpoint_highlight is not None and bpoint != breakpoint_highlight and mew is None:
                 alpha = 0.6
                 mew *= 0.6
                 # size *= 0.6
@@ -215,15 +217,16 @@ def plot_hic_region_matrix(
                 ax.plot(posX, posY, marker=markerX, color=annotation_color, markersize=size, mew=mew, alpha=alpha,)
                 ax.plot(posX, posY, marker=markerY, color=annotation_color, markersize=size, mew=mew, alpha=alpha,)
                 if crosshairs:
-                    ax.axvline(posX, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1, alpha=alpha)
-                    ax.axhline(posY, color=annotation_color, linestyle=(0, (1, 5)), linewidth=1, alpha=alpha)
+                    ax.axvline(posX, color=annotation_color, linestyle=(0, (1, 3)), linewidth=mew, alpha=0.5)
+                    ax.axhline(posY, color=annotation_color, linestyle=(0, (1, 3)), linewidth=mew, alpha=0.5)
 
     # Add inset colorbar
     cax = ax.inset_axes((0.05, 0.90, 0.1, 0.05))
     vmax_label = str(int(round(vmax))) if (isinstance(vmax, int) or abs(vmax-round(vmax)) < 0.001) else f"{vmax:.2f}" if vmax < 1 else f"{vmax:.1f}"
+    balancing = SHORT_NORM[normalization]
     plt.colorbar(im, cax=cax, orientation="horizontal", )
     cax.set_xticks([])
-    cax.set_title(f"{vmax_label}", x=1.3, y=0.42, ha="left", va="center", transform=cax.transAxes, fontsize=tick_fontsize)
+    cax.set_title(f"{vmax_label} ({balancing})", x=1.3, y=0.42, ha="left", va="center", transform=cax.transAxes, fontsize=tick_fontsize-1)
 
     # Reset x and y lim, in case the plotting of the markers changed it
     ax.set_xlim(xlim)
