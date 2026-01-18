@@ -1281,7 +1281,9 @@ def plot_cnv_track(
     return ax
 
 
-def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Axes=None, vmax: float | None =None, aspect="equal", rasterized=False, cmap=REDMAP, ):
+def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Axes=None, vmax: float | None =None, aspect="equal", 
+                            rasterized=False, cmap=REDMAP, normalization="?", plot_points: list[PairedRegion]=[], neoloop_lw=1, neoloop_ls="-", 
+                           show_arcs=False):
 
     data = assembled.data
 
@@ -1313,6 +1315,65 @@ def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Ax
     # cmap.set_under("#eee")
     im = ax.pcolormesh(col, row, data, cmap=cmap, vmax=vmax, vmin=0, rasterized=rasterized)
 
+    # Calculate plot points
+    def align_plot_point(p: PairedRegion):
+        mat_pos = []
+        cum_bins = 0 
+        for plot_region in assembled.plot_regions:
+            bin_start, bin_end = plot_region.bin_range
+            if plot_region.genomic_region is not None:
+                s = plot_region.genomic_region
+                if s.overlaps(p.regionA):
+                    new_pos = (p.regionA.get_center() - s.start) / (s.end + resolution - s.start)
+                    new_pos = 1 - new_pos if s.reverse else new_pos 
+                    new_pos = new_pos * (bin_end - bin_start) + cum_bins
+                    if new_pos > 0:
+                        mat_pos.append(new_pos)
+                if s.overlaps(p.regionB):
+                    new_pos = (p.regionB.get_center() - s.start) / (s.end + resolution - s.start)
+                    new_pos = 1 - new_pos if s.reverse else new_pos 
+                    new_pos = new_pos * (bin_end - bin_start) + cum_bins
+                    if new_pos > 0:
+                        mat_pos.append(new_pos)
+            cum_bins +=  bin_end - bin_start
+        if len(mat_pos) != 2:
+            print(p, "failed", mat_pos)
+            return None
+        return data.shape[0] - np.min(mat_pos), np.max(mat_pos)
+                    
+    aligned_plot_points = []
+    plot_point_radii = []
+    if len(plot_points) > 0:
+        for point in plot_points: 
+            aligned = align_plot_point(point)
+            if aligned is not None:
+                py, px = aligned
+                aligned_plot_points.append((px, py))
+                plot_point_radii.append(point.regionA.get_size())
+
+    # Add plot points
+    if len(aligned_plot_points) > 0:
+        # print(aligned_plot_points)
+        transformed_aligned_plot_points = affine.transform(np.array(aligned_plot_points))
+        for (x, y) in transformed_aligned_plot_points:
+            ellipse_radius = dim/20
+            ellipse = matplotlib.patches.Ellipse((x, y), ellipse_radius, ellipse_radius, fc="none", ec=LOOP_COLOUR, ls=neoloop_ls, lw=neoloop_lw)
+            ax.add_patch(ellipse)
+            
+    # Add arcs if requested
+    if show_arcs:
+        for (px, dpy),pradius in zip(aligned_plot_points, plot_point_radii):
+            py = data.shape[0] - dpy
+            square_size = 1
+            rect_width = max(pradius/ resolution * square_size, 1)
+            halfsize= rect_width/2
+            arc_y = -(square_size / 2)
+            ax.add_patch(Rectangle((px-halfsize, arc_y), rect_width, square_size/2, fc=LOOP_COLOUR, ec=LOOP_COLOUR, clip_on=False))
+            ax.add_patch(Rectangle((py-halfsize, arc_y), rect_width, square_size/2, fc=LOOP_COLOUR, ec=LOOP_COLOUR, clip_on=False))
+            midarc = (px + py) / 2
+            arc = matplotlib.patches.Arc((midarc, arc_y), abs(py-px), data.shape[1] / 20, theta1=180, theta2=360, ec=LOOP_COLOUR, clip_on=False, ls=neoloop_ls, lw=neoloop_lw)
+            ax.add_patch(arc)
+
     # Set axis limits
     ax.set_xlim(0, data.shape[0])
     ax.set_ylim(0, (data.shape[1])/2)
@@ -1329,11 +1390,12 @@ def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Ax
     )
     ax.add_artist(scalebar)
 
-    cax = ax.inset_axes([0.0, 0.93, 0.05, 0.03])
+    cax = ax.inset_axes([0.85, 0.85, 0.05, 0.03])
     vmax_label = str(int(round(vmax))) if (isinstance(vmax, int) or abs(vmax-round(vmax)) < 0.001) else f"{vmax:.2f}" if vmax < 1 else f"{vmax:.1f}"
+    balancing = SHORT_NORM[normalization]
     plt.colorbar(im, cax=cax, orientation="horizontal", )
     cax.set_xticks([])
-    cax.set_title(f"{vmax_label}", x=1.3, y=0.42, ha="left", va="center", transform=cax.transAxes, fontsize=8)
+    cax.set_title(f"{vmax_label} ({balancing})", x=3, y=0.42, ha="right", va="center", transform=cax.transAxes, fontsize=8)
 
     # Only considering two plot regions for now - if there are more, then this won't work!
     for i, plot_region_left in enumerate(assembled.plot_regions):

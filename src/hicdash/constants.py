@@ -182,3 +182,5 @@ SHORT_NORM = {
     "SCALE": "S",
     "VC_SQRT": "V"
 }
+
+LOOP_COLOUR = "royalblue"
