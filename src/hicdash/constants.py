@@ -175,3 +175,10 @@ CHROM_COLORS = {
     "chrX": "#666666",
     "chrY": "#5F4690",
 }
+
+# Shorten norm names to a single letter for plots
+SHORT_NORM = {
+    "NONE": "R",
+    "SCALE": "S",
+    "VC_SQRT": "V"
+}

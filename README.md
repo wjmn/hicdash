@@ -92,6 +92,8 @@ python -m unittest
 
 ## Changelog
 
+* v0.0.3.1 (2024-10-08)
+   * New reporting formatting with refined plots
 * v0.0.2 (2024-05-12)
     * Allow plotting extra 2D (.bedpe) annotations.
     * Allow plotting extra 1D (.bigwig) tracks.
