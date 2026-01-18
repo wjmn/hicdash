@@ -9,8 +9,8 @@ from numpy.typing import NDArray
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar # type: ignore
 from hicstraw import HiCFile # type: ignore
-from hicdash.constants import CHROM_SIZES, CHROMS, CHROM_INDICES, GENE_ANNOTATIONS, MARKER_SIZE_DICT, CHROM_COLORS, BIGWIG_COLORS
-from hicdash.definitions import ArimaPipelineSample, Breakpoint, GenomicRegion, Strand, AssembledHic, PlotRegion
+from hicdash.constants import CHROM_SIZES, CHROMS, CHROM_INDICES, GENE_ANNOTATIONS, MARKER_SIZE_DICT, CHROM_COLORS, BIGWIG_COLORS, LOOP_COLOUR, SHORT_NORM
+from hicdash.definitions import ArimaPipelineSample, Breakpoint, GenomicRegion, Strand, AssembledHic, PlotRegion, PairedRegion
 from matplotlib.patches import Rectangle, Ellipse
 from matplotlib.ticker import FixedLocator, MultipleLocator
 from hicdash.utilities import *
