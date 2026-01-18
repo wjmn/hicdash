@@ -984,7 +984,7 @@ def plot_bigwig_track(
     end = region.end
 
     # Check if chromosomes are prefixed or unprefixed
-    if "chr1" in bw_handle.chroms().keys():
+    if region.chrom in bw_handle.chroms().keys():
         pass
     else:
         chr = chr_unprefix(chr)
@@ -992,7 +992,7 @@ def plot_bigwig_track(
     # Get the data from the bigwig file
     # FIrst ensure bounds are safe 
     safe_start = max(0, start)
-    safe_end = min(CHROM_SIZES[chr], end)
+    safe_end = min(CHROM_SIZES[chr_prefix(chr)], end)
     safe_nbins = (safe_end - safe_start) // ((end - start) // num_bins)
     data = bw_handle.stats(chr, safe_start, safe_end, type="mean", nBins=safe_nbins, numpy=True)
     # Pad with extra zeros if was out of bounds initially
