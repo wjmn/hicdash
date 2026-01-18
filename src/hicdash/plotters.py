@@ -1392,7 +1392,7 @@ def plot_assembled_triangle(assembled: AssembledHic, resolution: int, ax: plt.Ax
 
     cax = ax.inset_axes([0.85, 0.85, 0.05, 0.03])
     vmax_label = str(int(round(vmax))) if (isinstance(vmax, int) or abs(vmax-round(vmax)) < 0.001) else f"{vmax:.2f}" if vmax < 1 else f"{vmax:.1f}"
-    balancing = SHORT_NORM[normalization]
+    balancing = SHORT_NORM.get(normalization, "?")
     plt.colorbar(im, cax=cax, orientation="horizontal", )
     cax.set_xticks([])
     cax.set_title(f"{vmax_label} ({balancing})", x=3, y=0.42, ha="right", va="center", transform=cax.transAxes, fontsize=8)
