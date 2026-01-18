@@ -1138,7 +1138,7 @@ def plot_arrow_track(region: GenomicRegion, label_chr=True, ax=None) -> None:
 
 
 
-def plot_ctcf_track(bedfile: str, region: GenomicRegion, color="seagreen", ax=plt.Axes | None,s=20, vertical=False):
+def plot_ctcf_track(bedfile: str, region: GenomicRegion, ax=plt.Axes | None,s=20, vertical=False, colorA="seagreen", colorB="seagreen"):
     """Plot oriented CTCF motifs (given a bedfile with columns chr, start, end, strand)
 
         plot_oriented_ctcf_track(bedfile, region, ax=ax)
@@ -1162,8 +1162,8 @@ def plot_ctcf_track(bedfile: str, region: GenomicRegion, color="seagreen", ax=pl
         # Pre-emptively reverse markers if region is reversed
         if region.reverse:
             marker_pos, marker_neg = marker_neg, marker_pos
-        ax.scatter([0.5] * len(pos), pos, color=color, s=s, marker=marker_pos)
-        ax.scatter([0.5] * len(neg), neg, color=color, s=s, marker=marker_neg)
+        ax.scatter([0.5] * len(pos), pos, color=colorA, s=s, marker=marker_pos)
+        ax.scatter([0.5] * len(neg), neg, color=colorB, s=s, marker=marker_neg)
         ax.set_ylim(start, end)
         ax.invert_yaxis()
         ax.set_xlim(1, 0)
@@ -1173,8 +1173,8 @@ def plot_ctcf_track(bedfile: str, region: GenomicRegion, color="seagreen", ax=pl
         # Pre-emptively reverse markers if region is reversed
         if region.reverse:
             marker_pos, marker_neg = marker_neg, marker_pos
-        ax.scatter(pos, [0.5] * len(pos), color=color, s=s, marker=marker_pos)
-        ax.scatter(neg, [0.5] * len(neg), color=color, s=s, marker=marker_neg)
+        ax.scatter(pos, [0.5] * len(pos), color=colorA, s=s, marker=marker_pos)
+        ax.scatter(neg, [0.5] * len(neg), color=colorB, s=s, marker=marker_neg)
         ax.set_xlim(start, end)
         ax.set_ylim(0, 1)
 
