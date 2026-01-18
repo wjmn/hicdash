@@ -1109,7 +1109,13 @@ def plot_arrow_track(region: GenomicRegion, label_chr=True, ax=None) -> None:
         ax = plt.gca()
     chrom, start, end = region.chrom, region.start, region.end
     arrowhead_style = "left"
-    head_length = ((end - start) / 25)
+
+    fig = plt.gcf()
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    width, height = bbox.width, bbox.height
+    head_length = region.get_size() * (height / width) / 2
+    
+    # head_length = ((end - start) / 25)
     
     arrow_end = end
     arrow_start = start
